@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Liberation Mono";
+  src: url("/fonts/liberation-mono-regular.ttf") format("truetype");
+  font-weight: 400 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Liberation Mono";
+  src: url("/fonts/liberation-mono-bold.ttf") format("truetype");
+  font-weight: 700 900;
+  font-display: swap;
+}
+
 :root {
   --ink: #1c2525;
   --muted: #718080;
@@ -86,7 +99,7 @@ button { cursor: pointer; }
 .format-option strong { color: var(--teal-dark); font-size: 12px; }
 .format-option small { margin-top: 4px; color: var(--muted); font-size: 10px; }
 .format-preview { width: 35px; height: 42px; display: grid; place-items: center; border-radius: 5px; background: #ecede7; }
-.format-roll { display: block; height: 31px; background: #fffdf7; border: 1px solid #d3d4cb; box-shadow: 0 2px 3px rgba(0,0,0,.06); }
+.format-roll { display: block; height: 31px; background: #ffffff; border: 1px solid #d3d4cb; box-shadow: 0 2px 3px rgba(0,0,0,.06); }
 .format-roll-58 { width: 23px; }
 .format-roll-80 { width: 29px; }
 .checkmark { display: none; margin-left: auto; color: var(--teal); font-size: 14px; }
@@ -157,9 +170,10 @@ button { cursor: pointer; }
 .preview-header { justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .preview-stage { min-height: 790px; display: grid; place-items: start center; overflow: auto; padding: 30px 20px 44px; border: 1px solid rgba(194, 210, 203, .75); border-radius: 18px; background: linear-gradient(145deg, #dfe8e1, #eaf0ea); box-shadow: var(--shadow); }
 .receipt-page { width: var(--paper-width); min-width: var(--paper-width); padding: 0 5px; }
-.receipt-paper { width: var(--content-width); min-height: 670px; position: relative; margin: 0 auto; overflow: hidden; padding: 12px 10px 10px; color: #202120; background: #fffdf7; box-shadow: 0 16px 30px rgba(33, 47, 43, .15); font-family: "Courier New", "Lucida Console", monospace; font-size: 10px; line-height: 1.12; }
+.receipt-paper { width: var(--content-width); min-height: 670px; position: relative; margin: 0 auto; overflow: hidden; padding: 12px 10px 10px; color: #202120; background: #ffffff; box-shadow: 0 16px 30px rgba(33, 47, 43, .15); font-family: "Liberation Mono", "Courier New", "Lucida Console", monospace; font-size: 10px; font-weight: 800; line-height: 1.12; }
 .paper--58 { font-size: 8px; padding-left: 6px; padding-right: 6px; }
 .receipt-top-line, .receipt-bottom-line { color: #8b8b80; overflow: hidden; white-space: nowrap; letter-spacing: 1px; text-align: center; }
+.receipt-paper strong { font-weight: 800; }
 .receipt-store { margin: 8px 0 5px; font-weight: 800; line-height: 1.35; text-align: center; }
 .receipt-subtitle { margin-bottom: 6px; font-size: 1.05em; font-weight: 800; text-align: center; }
 .receipt-rule { height: 1px; margin: 5px 0; border-top: 1px dashed #8c8c7e; }
@@ -186,7 +200,7 @@ button { cursor: pointer; }
 .receipt-qr img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .receipt-qr span { display: grid; place-items: center; width: 100%; height: 100%; border: 2px solid #222; font-size: 9px; }
 .receipt-bottom-line { margin-top: 4px; }
-.market-address { margin: -2px 0 4px; font-weight: 700; line-height: 1.25; text-align: center; }
+.market-address { margin: -2px 0 4px; line-height: 1.25; text-align: center; }
 .receipt--supermarket .receipt-store { margin-bottom: 3px; }
 .receipt--supermarket .receipt-subtitle { margin-bottom: 4px; }
 .market-table-head, .market-item { display: grid; gap: 3px; align-items: baseline; }
