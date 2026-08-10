@@ -1,6 +1,7 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "receipt-studio",
   "version": "0.1.0",
+  "description": "Printable Russian restaurant & supermarket receipt generator (58mm/80mm) with auto fiscal QR.",
   "private": true,
   "engines": {
     "node": ">=22.13.0"

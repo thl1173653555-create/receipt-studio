@@ -1,99 +1,67 @@
-# vinext-starter
+# 🧾 小票生成器 · БЭЙ ХАЙ
 
-一个简洁的全栈项目模板，基于
-[vinext](https://github.com/cloudflare/vinext) 运行，并可选配 Cloudflare D1
-和 Drizzle 支持。
+一个可打印的**俄式餐厅/超市小票生成器**。从菜单点选、实时预览、打印或导出 PDF,
+58mm / 80mm 版式对齐真实俄罗斯小票格式。
 
-## 前置要求
+> 基于 [vinext](https://github.com/cloudflare/vinext)(Next.js 16 + Vite)构建,
+> 可选 Cloudflare D1 / Drizzle 支持。
 
-- Node.js `>=22.13.0`
+## ✨ 功能特性
 
-## 快速开始
+- **两种场景**:餐厅(主打 58mm)与超市(主打 80mm),版式对齐真实俄罗斯小票
+- **税控字段**:`ЗН ККТ`、`РН ККТ`、`ИНН`、`ФН`、`ФД`、`ФП`、`ПРИХОД`
+  —— 表单可编辑、小票同步渲染
+- **二维码自动生成**:按订单实时生成,使用标准税控格式
+  (`t=&s=&fn=&i=&fp=&n=`),随修改联动
+- **所见即所得**:所有字段绑定实时预览
+- **两种纸型**:58mm 与 80mm,各自独立字号排版
+- **打印与 PDF**:打印样式(`@media print`)输出真实纸宽的干净小票页
+- **本机历史**:小票保存在浏览器本地(最多 50 张)
+- **双语**:俄文小票内容 + 中文界面
+
+## 🧰 技术栈
+
+| 层 | 技术 |
+| --- | --- |
+| 框架 | [Next.js](https://nextjs.org/) 16(App Router、RSC) |
+| UI | React 19、Tailwind CSS 4 |
+| 构建 | [Vite](https://vite.dev/) 8 + vinext |
+| 数据(可选) | [Drizzle ORM](https://orm.drizzle.team/) + Cloudflare D1 |
+| 二维码 | `qrcode`(标准税控 payload) |
+
+## 🚀 快速开始
 
 ```bash
 npm install
-npm run dev
-npm run build
+npm run dev      # 启动本地开发服务器
+npm run build    # 验证构建输出
+npm test         # 构建 + 渲染冒烟测试
 ```
 
-此模板不使用 `wrangler.jsonc`。
+需要 Node.js `>=22.13.0`。
 
-## 已包含的项目结构
+## 🧾 使用方法
 
-- 在 `app/` 目录下编辑网站代码
-- `.openai/hosting.json` 声明可选的 Sites D1 与 R2 绑定
-- `vite.config.ts` 在本地开发时模拟已声明的绑定
-- `db/schema.ts` 初始时有意保持为空
-- `examples/d1/` 包含一个可选的 D1 示例代码
-- `drizzle.config.ts` 在需要时支持本地生成数据库迁移文件
+1. 选择场景(**餐厅** / **超市**)与纸型(**58mm** / **80mm**)。
+2. 填写店铺与订单字段,或点击菜单项右侧 `+` 加入本单。
+3. 在"本次点单"中修改数量与单价,预览实时更新。
+4. 需要时调整二维码位置。
+5. 点击 **打印小票**,在打印对话框中选择"另存为 PDF"即可导出。
 
-## 工作区身份验证请求头
+## 📁 项目结构
 
-已登录的访问者会同时收到 `oai-authenticated-user-id` 和
-`oai-authenticated-user-email` 两个请求头。私有 Sites 要求每位访问者登录；
-公共 Sites 也可能有匿名访问者，此时这两个请求头都不会出现。
-
-同一位用户在同一个 Site 上的用户 ID 是稳定的，而在不同 Sites 之间会不同。
-电子邮箱和姓名主要用于展示或联系。
-
-当用户的 SIWC 档案中存在非空的 `name` 声明时，使用 SIWC 身份验证的工作区
-站点还可能收到 `oai-authenticated-user-full-name` 请求头。完整姓名的值采用
-百分号编码的 UTF-8 格式，并伴随有
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8` 请求头。
-
-请将完整姓名视为可选字段；如果不存在，则使用电子邮箱作为后备值：
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```
+app/                  # Next.js 应用(页面、样式)
+data/                 # 菜单 JSON(餐厅 + 超市)
+db/                   # 可选 Drizzle schema
+tests/                # 渲染冒烟测试
+drizzle.config.ts     # 迁移配置
 ```
 
-## 可选：由 Dispatch 托管的 ChatGPT 登录
+## 🔒 许可证
 
-当网站需要可选或必需的 ChatGPT 登录时，可从 `app/chatgpt-auth.ts` 导入可直接使用的辅助函数：
+[MIT](./LICENSE) © 2026 thl1173653555-create
 
-- 使用 `getChatGPTUser()` 创建可选登录状态的界面。
-- 对于需要将匿名访问者引导至“使用 ChatGPT 登录”的服务端渲染页面，使用
-  `requireChatGPTUser(returnTo)`。
-- 对浏览器链接或操作，使用 `chatGPTSignInPath(returnTo)` 和
-  `chatGPTSignOutPath(returnTo)`。
-- 请传入同源的相对 `returnTo` 路径，作为登录或退出后的跳转目标；辅助函数会进行验证并安全编码。
-- 受保护页面依赖每次请求的身份请求头，因此请使用
-  `export const dynamic = "force-dynamic"` 标记这些页面。
+---
 
-Dispatch 负责处理 `/signin-with-chatgpt`、`/signout-with-chatgpt`、`/callback`、
-OAuth Cookie 及身份请求头注入。请不要为这些保留路径自行实现应用路由。
-未导入并调用这些辅助函数的路由仍可兼容匿名访问。
-
-SIWC 只负责建立身份，不能证明用户属于某个工作区。如需对整个工作区进行访问限制，
-请使用 Sites 托管平台的访问策略控制，或在服务端明确实施成员资格或允许名单检查。
-
-将 SIWC 用于账户页面、用户专属仪表板、已保存记录，以及与当前 ChatGPT 用户绑定的写入操作；
-公开内容应保持支持匿名访问。
-
-## 常用命令
-
-- `npm run dev`：启动本地开发服务器
-- `npm run build`：验证 vinext 的构建输出
-- `npm test`：构建模板并验证其渲染的加载骨架
-- `npm run db:generate`：在修改数据库结构后生成 Drizzle 迁移文件
-
-## 了解更多
-
-- [vinext 文档](https://github.com/cloudflare/vinext)
-- [Drizzle D1 指南](https://orm.drizzle.team/docs/get-started/d1-new)
+### English version: [README](./README.md)
