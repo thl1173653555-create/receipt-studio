@@ -6,6 +6,12 @@
 > 基于 [vinext](https://github.com/cloudflare/vinext)(Next.js 16 + Vite)构建,
 > 可选 Cloudflare D1 / Drizzle 支持。
 
+## 📸 效果预览
+
+<p align="center">
+  <img src="screenshots/preview.png" alt="小票生成器效果预览 — 餐厅 58mm 与 超市 80mm" width="640" />
+</p>
+
 ## ✨ 功能特性
 
 - **两种场景**:餐厅(主打 58mm)与超市(主打 80mm),版式对齐真实俄罗斯小票

@@ -7,6 +7,12 @@ formats and layouts matching real Russian receipts (58mm / 80mm).
 > Built on [vinext](https://github.com/cloudflare/vinext) (Next.js 16 + Vite)
 > with optional Cloudflare D1 / Drizzle support.
 
+## 📸 Preview
+
+<p align="center">
+  <img src="screenshots/preview.png" alt="Receipt Studio preview — restaurant 58mm & supermarket 80mm" width="640" />
+</p>
+
 ## ✨ Features
 
 - **Two scenarios**: restaurant (58mm focused) and supermarket (80mm focused)
