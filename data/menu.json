@@ -1,0 +1,23 @@
+[
+  { "id": "fresh-mojito", "name": "Напиток CHILLOUT \"Fresh Mojito\" сильногазированный 0,9 л", "price": 250, "category": "饮品" },
+  { "id": "rice-vegetables", "name": "85. Рис с овощами 350гр", "price": 400, "category": "主食" },
+  { "id": "sichuan-meat", "name": "34. Мясо в бутылочке по Сычуаньски 400гр.", "price": 800, "category": "热菜" },
+  { "id": "kung-pao-chicken", "name": "12. Курица гунбао с арахисом 350гр.", "price": 650, "category": "热菜" },
+  { "id": "sweet-sour-pork", "name": "18. Свинина в кисло-сладком соусе 400гр.", "price": 700, "category": "热菜" },
+  { "id": "black-pepper-beef", "name": "19. Говядина с овощами и чёрным перцем 400гр.", "price": 850, "category": "热菜" },
+  { "id": "sweet-sour-shrimp", "name": "23. Креветки в кисло-сладком соусе 300гр.", "price": 950, "category": "热菜" },
+  { "id": "sichuan-fish", "name": "26. Рыба по-сычуаньски 400гр.", "price": 980, "category": "热菜" },
+  { "id": "mapo-tofu", "name": "31. Тофу мапо 300гр.", "price": 550, "category": "热菜" },
+  { "id": "sichuan-eggplant", "name": "32. Баклажаны по-сычуаньски 300гр.", "price": 500, "category": "热菜" },
+  { "id": "cucumber-salad", "name": "Салат из огурцов с чесноком 250гр.", "price": 350, "category": "冷菜" },
+  { "id": "wood-ear-salad", "name": "Салат из древесных грибов 250гр.", "price": 450, "category": "冷菜" },
+  { "id": "vegetable-noodles", "name": "Лапша с овощами 300гр.", "price": 450, "category": "主食" },
+  { "id": "egg-fried-rice", "name": "Жареный рис с яйцом 300гр.", "price": 420, "category": "主食" },
+  { "id": "shrimp-dumplings", "name": "Димсам с креветкой 6шт.", "price": 520, "category": "主食" },
+  { "id": "jasmine-tea", "name": "Чай жасминовый 500мл", "price": 220, "category": "饮品" },
+  { "id": "cola", "name": "Coca-Cola 0,5л", "price": 180, "category": "饮品" },
+  { "id": "tsingtao", "name": "Пиво Tsingtao 0,5л", "price": 320, "category": "酒水" },
+  { "id": "white-wine", "name": "Вино белое сухое 0,75л", "price": 1600, "category": "酒水" },
+  { "id": "banana-caramel", "name": "Банан в карамели 200гр.", "price": 420, "category": "甜品" },
+  { "id": "mango-ice-cream", "name": "Мороженое с манго 150гр.", "price": 350, "category": "甜品" }
+]

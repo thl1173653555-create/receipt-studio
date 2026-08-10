@@ -2,13 +2,24 @@
 
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
+import menuFile from "../data/menu.json";
+import supermarketMenuFile from "../data/supermarket-menu.json";
 
 type PaperFormat = "58" | "80";
+type ReceiptScenario = "restaurant" | "supermarket";
+type MenuCategory =
+  | "冷菜" | "热菜" | "主食" | "饮品" | "酒水" | "甜品" | "其他"
+  | "Молочные продукты" | "Хлеб и выпечка" | "Бакалея" | "Сладости" | "Снеки"
+  | "Напитки" | "Консервы и соусы" | "Заморозка" | "Для дома" | "Красота и уход" | "Товары для животных";
+type MenuFilter = "全部" | MenuCategory;
 
 type MenuItem = {
   id: string;
   name: string;
   price: number;
+  category: MenuCategory;
+  code?: string;
+  vat?: number;
 };
 
 type OrderItem = MenuItem & {
@@ -25,6 +36,17 @@ type ReceiptData = {
   saleNumber: string;
   payment: string;
   items: OrderItem[];
+  register?: string;
+  shift?: string;
+  taxSystem?: string;
+  fiscalDocument?: string;
+  fiscalSign?: string;
+  fn?: string;
+  rn?: string;
+  inn?: string;
+  ofd?: string;
+  place?: string;
+  savings?: number;
 };
 
 type QrPosition = {
@@ -36,32 +58,32 @@ type QrPosition = {
 type SavedReceipt = {
   id: string;
   savedAt: string;
+  scenario?: ReceiptScenario;
   format: PaperFormat;
   data: ReceiptData;
   qr: Record<PaperFormat, QrPosition>;
 };
 
 const HISTORY_KEY = "beihai-receipt-history-v1";
-const MENU_KEY = "beihai-receipt-menu-v1";
+const MENU_KEYS: Record<ReceiptScenario, string> = {
+  restaurant: "beihai-receipt-menu-v1",
+  supermarket: "beihai-supermarket-menu-v1",
+};
+const MENU_CATEGORIES_BY_SCENARIO: Record<ReceiptScenario, MenuFilter[]> = {
+  restaurant: ["全部", "冷菜", "热菜", "主食", "饮品", "酒水", "甜品", "其他"],
+  supermarket: ["全部", "Молочные продукты", "Хлеб и выпечка", "Бакалея", "Сладости", "Снеки", "Напитки", "Консервы и соусы", "Заморозка", "Для дома", "Красота и уход", "Товары для животных"],
+};
 
 const PAPER: Record<PaperFormat, { label: string; paper: number; content: number }> = {
   "58": { label: "58mm / 48mm打印宽度", paper: 58, content: 48 },
   "80": { label: "80mm / 80mm打印宽度", paper: 80, content: 80 },
 };
 
-const DEFAULT_MENU: MenuItem[] = [
-  {
-    id: "fresh-mojito",
-    name: 'Напиток CHILLOUT "Fresh Mojito" сильногазированный 0,9 л',
-    price: 250,
-  },
-  { id: "rice-vegetables", name: "85. Рис с овощами 350гр", price: 400 },
-  {
-    id: "sichuan-meat",
-    name: "34. Мясо в бутылочке по Сычуаньски 400гр.",
-    price: 800,
-  },
-];
+const DEFAULT_MENUS: Record<ReceiptScenario, MenuItem[]> = {
+  restaurant: menuFile as MenuItem[],
+  supermarket: supermarketMenuFile as MenuItem[],
+};
+const DEFAULT_MENU = DEFAULT_MENUS.restaurant;
 
 const DEFAULT_RECEIPT: ReceiptData = {
   storeName: 'РЕСТОРАН КИТАЙСКОЙ КУХНИ "БЭЙ ХАЙ"',
@@ -72,12 +94,40 @@ const DEFAULT_RECEIPT: ReceiptData = {
   time: "21:09",
   saleNumber: "7056",
   payment: "БАНК. КАРТОЙ",
-  items: DEFAULT_MENU.map((item) => ({ ...item, qty: 1 })),
+  rn: "0008659688010745",
+  inn: "2503001332",
+  fn: "7380440903084287",
+  fiscalDocument: "4648",
+  fiscalSign: "2443271199",
+  items: DEFAULT_MENU.slice(0, 3).map((item) => ({ ...item, qty: 1 })),
+};
+
+const DEFAULT_SUPERMARKET_RECEIPT: ReceiptData = {
+  storeName: 'ООО "САПФИР"',
+  company: 'ООО "САПФИР"',
+  address: "692802, Г. БОЛЬШОЙ КАМЕНЬ, УЛ. АЛЕЯ ТРУДА, Д. 8",
+  cashier: "АВТОМАТ 20-6 КСО",
+  date: "2026-07-19",
+  time: "21:24",
+  saleNumber: "224",
+  payment: "БЕЗНАЛИЧНЫМИ",
+  savings: 30.09,
+  register: "0006.01",
+  shift: "0230",
+  taxSystem: "ОСН",
+  fiscalDocument: "54784",
+  fiscalSign: "0082339468",
+  fn: "7384440901113190",
+  rn: "0008454318052675",
+  inn: "2503029218",
+  ofd: "CASH-NNT.KONTUR.RU",
+  place: 'МАГАЗИН "РЕМИ"',
+  items: DEFAULT_MENUS.supermarket.slice(0, 7).map((item) => ({ ...item, qty: 1 })),
 };
 
 const DEFAULT_QR: Record<PaperFormat, QrPosition> = {
-  "58": { x: 11, y: 1, size: 26 },
-  "80": { x: 24, y: 1, size: 32 },
+  "58": { x: 27, y: -1, size: 19 },
+  "80": { x: 52, y: -1, size: 22 },
 };
 
 const DEMO_TAX_FIELDS = [
@@ -111,7 +161,27 @@ function readLocal<T>(key: string, fallback: T): T {
   }
 }
 
+function normalizeMenu(items: MenuItem[], defaults: MenuItem[]) {
+  return items.map((item) => {
+    const fallback = defaults.find((defaultItem) => defaultItem.id === item.id);
+    return { ...item, category: item.category ?? fallback?.category ?? "其他" };
+  });
+}
+
+function mergeMenu(items: MenuItem[], defaults: MenuItem[]) {
+  const normalized = normalizeMenu(items, defaults);
+  const savedById = new Map(normalized.map((item) => [item.id, item]));
+  const builtIn = defaults.map((item) => savedById.get(item.id) ?? item);
+  const custom = normalized.filter((item) => !defaults.some((defaultItem) => defaultItem.id === item.id));
+  return [...builtIn, ...custom];
+}
+
+function receiptTemplateForScenario(scenario: ReceiptScenario) {
+  return scenario === "supermarket" ? DEFAULT_SUPERMARKET_RECEIPT : DEFAULT_RECEIPT;
+}
+
 export default function Home() {
+  const [scenario, setScenario] = useState<ReceiptScenario>("restaurant");
   const [format, setFormat] = useState<PaperFormat>("58");
   const [receipt, setReceipt] = useState<ReceiptData>(DEFAULT_RECEIPT);
   const [qrPositions, setQrPositions] = useState(DEFAULT_QR);
@@ -121,6 +191,9 @@ export default function Home() {
   const [qrImage, setQrImage] = useState("");
   const [newMenuName, setNewMenuName] = useState("");
   const [newMenuPrice, setNewMenuPrice] = useState("0");
+  const [newMenuCategory, setNewMenuCategory] = useState<MenuCategory>("其他");
+  const [menuQuery, setMenuQuery] = useState("");
+  const [menuCategory, setMenuCategory] = useState<MenuFilter>("全部");
   const [notice, setNotice] = useState("");
 
   const total = useMemo(
@@ -129,33 +202,34 @@ export default function Home() {
   );
 
   const qrPayload = useMemo(() => {
-    const itemLines = receipt.items
-      .map((item) => `${item.name} x${item.qty}=${formatMoney(item.qty * item.price)}`)
-      .join("; ");
+    const timestamp = `${receipt.date.replace(/-/g, "")}T${receipt.time.replace(":", "")}`;
+    const fn = receipt.fn ?? DEMO_TAX_FIELDS[3][1];
+    const fiscalDocument = receipt.fiscalDocument ?? DEMO_TAX_FIELDS[4][1];
+    const fiscalSign = receipt.fiscalSign ?? DEMO_TAX_FIELDS[5][1];
 
     return [
-      `STORE=${receipt.storeName}`,
-      `DATE=${receipt.date}`,
-      `TIME=${receipt.time}`,
-      `RECEIPT_NO=${receipt.saleNumber}`,
-      `TOTAL_RUB=${formatMoney(total)}`,
-      `PAYMENT=${receipt.payment}`,
-      `ITEMS=${receipt.items.length}`,
-      `DETAILS=${itemLines}`,
-    ].join("\n");
+      `t=${timestamp}`,
+      `s=${formatMoney(total)}`,
+      `fn=${fn}`,
+      `i=${fiscalDocument}`,
+      `fp=${fiscalSign}`,
+      "n=1",
+    ].join("&");
   }, [receipt, total]);
 
   useEffect(() => {
     setHistory(readLocal<SavedReceipt[]>(HISTORY_KEY, []));
-    setMenu(readLocal<MenuItem[]>(MENU_KEY, DEFAULT_MENU));
-  }, []);
+    setMenu(mergeMenu(readLocal<MenuItem[]>(MENU_KEYS[scenario], []), DEFAULT_MENUS[scenario]));
+    setMenuCategory("鍏ㄩ儴");
+    setNewMenuCategory(MENU_CATEGORIES_BY_SCENARIO[scenario][1] as MenuCategory);
+  }, [scenario]);
 
   useEffect(() => {
     QRCode.toDataURL(qrPayload, {
-      errorCorrectionLevel: "M",
-      margin: 2,
-      width: 512,
-      color: { dark: "#151515", light: "#fffdf8" },
+      errorCorrectionLevel: "L",
+      margin: 3,
+      width: 1024,
+      color: { dark: "#000000", light: "#ffffff" },
     })
       .then(setQrImage)
       .catch(() => setQrImage(""));
@@ -169,6 +243,22 @@ export default function Home() {
 
   const currentPaper = PAPER[format];
   const qr = qrPositions[format];
+  const currentDefaultMenu = DEFAULT_MENUS[scenario];
+  const menuCategories = MENU_CATEGORIES_BY_SCENARIO[scenario];
+  const filteredMenu = useMemo(() => {
+    const query = menuQuery.trim().toLocaleLowerCase();
+    return menu.filter((item) => {
+      const matchesQuery = !query || item.name.toLocaleLowerCase().includes(query);
+      const matchesCategory = menuCategory === "全部" || item.category === menuCategory;
+      return matchesQuery && matchesCategory;
+    });
+  }, [menu, menuCategory, menuQuery]);
+
+  const vatTotal = (rate: number) => receipt.items.reduce((sum, item) => {
+    if ((item.vat ?? 22) !== rate) return sum;
+    const itemVat = (item.qty * item.price * rate) / (100 + rate);
+    return sum + Number(itemVat.toFixed(2));
+  }, 0);
 
   function updateReceipt<K extends keyof ReceiptData>(field: K, value: ReceiptData[K]) {
     setReceipt((current) => ({ ...current, [field]: value }));
@@ -176,9 +266,11 @@ export default function Home() {
   }
 
   function updateQr(field: keyof QrPosition, rawValue: string) {
-    const value = Math.max(0, Number(rawValue) || 0);
-    const maximum = field === "x" ? currentPaper.content - qr.size : field === "size" ? currentPaper.content : 120;
-    const nextValue = Math.min(value, Math.max(0, maximum));
+    const parsedValue = Number(rawValue);
+    const value = Number.isFinite(parsedValue) ? parsedValue : 0;
+    const minimum = field === "y" ? -10 : field === "size" ? 14 : 0;
+    const maximum = field === "x" ? currentPaper.content - qr.size : field === "size" ? currentPaper.content - Math.max(qr.x, 0) : 120;
+    const nextValue = Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
     setQrPositions((current) => ({
       ...current,
       [format]: { ...current[format], [field]: nextValue },
@@ -216,6 +308,12 @@ export default function Home() {
     setActiveId(null);
   }
 
+  function clearOrder() {
+    setReceipt((current) => ({ ...current, items: [] }));
+    setActiveId(null);
+    setNotice("已清空本单");
+  }
+
   function addCustomMenuItem(saveToMenu: boolean) {
     const name = newMenuName.trim();
     const price = Math.max(0, Number(newMenuPrice) || 0);
@@ -223,11 +321,17 @@ export default function Home() {
       setNotice("请先填写菜品名称");
       return;
     }
-    const item = { id: makeId(), name, price };
+    const item: MenuItem = {
+      id: makeId(),
+      name,
+      price,
+      category: newMenuCategory,
+      ...(scenario === "supermarket" ? { code: "000000", vat: 22 } : {}),
+    };
     if (saveToMenu) {
       const nextMenu = [...menu, item];
       setMenu(nextMenu);
-      window.localStorage.setItem(MENU_KEY, JSON.stringify(nextMenu));
+      window.localStorage.setItem(MENU_KEYS[scenario], JSON.stringify(nextMenu));
       setNotice("已保存到常用菜单并加入本单");
     } else {
       setNotice("已加入本单");
@@ -235,12 +339,13 @@ export default function Home() {
     addToOrder(item);
     setNewMenuName("");
     setNewMenuPrice("0");
+    setNewMenuCategory(MENU_CATEGORIES_BY_SCENARIO[scenario][1] as MenuCategory);
   }
 
   function deleteMenuItem(id: string) {
     const nextMenu = menu.filter((item) => item.id !== id);
     setMenu(nextMenu);
-    window.localStorage.setItem(MENU_KEY, JSON.stringify(nextMenu));
+    window.localStorage.setItem(MENU_KEYS[scenario], JSON.stringify(nextMenu));
     setNotice("已从常用菜单移除");
   }
 
@@ -248,6 +353,7 @@ export default function Home() {
     const entry: SavedReceipt = {
       id: activeId ?? makeId(),
       savedAt: new Date().toISOString(),
+      scenario,
       format,
       data: receipt,
       qr: qrPositions,
@@ -260,6 +366,7 @@ export default function Home() {
   }
 
   function loadReceipt(entry: SavedReceipt) {
+    setScenario(entry.scenario ?? "restaurant");
     setReceipt(entry.data);
     setFormat(entry.format);
     setQrPositions(entry.qr);
@@ -276,11 +383,25 @@ export default function Home() {
   }
 
   function startNewReceipt() {
-    setReceipt({ ...DEFAULT_RECEIPT, items: DEFAULT_RECEIPT.items.map((item) => ({ ...item, id: makeId() })) });
+    const template = receiptTemplateForScenario(scenario);
+    setReceipt({ ...template, items: template.items.map((item) => ({ ...item, id: makeId() })) });
     setFormat("58");
     setQrPositions(DEFAULT_QR);
     setActiveId(null);
     setNotice("已新建小票");
+  }
+
+  function switchScenario(nextScenario: ReceiptScenario) {
+    const template = receiptTemplateForScenario(nextScenario);
+    setScenario(nextScenario);
+    setReceipt({ ...template, items: template.items.map((item) => ({ ...item, id: makeId() })) });
+    setMenu(mergeMenu(readLocal<MenuItem[]>(MENU_KEYS[nextScenario], []), DEFAULT_MENUS[nextScenario]));
+    setMenuCategory("全部");
+    setMenuQuery("");
+    setNewMenuCategory(MENU_CATEGORIES_BY_SCENARIO[nextScenario][1] as MenuCategory);
+    setQrPositions(DEFAULT_QR);
+    setActiveId(null);
+    setNotice(nextScenario === "supermarket" ? "已切换到超市场景" : "已切换到餐厅场景");
   }
 
   return (
@@ -314,9 +435,28 @@ export default function Home() {
 
       <div className="workspace">
         <section className="editor-column" aria-label="小票编辑区">
+          <div className="control-card scenario-card">
+            <div className="card-heading">
+              <div><span className="section-index">01</span><h3>业务场景</h3></div>
+              <span className="muted">选择打印模板</span>
+            </div>
+            <div className="scenario-options">
+              <label className={`scenario-option ${scenario === "restaurant" ? "selected" : ""}`}>
+                <input type="radio" name="receipt-scenario" checked={scenario === "restaurant"} onChange={() => switchScenario("restaurant")} />
+                <span className="scenario-icon">餐</span>
+                <span><strong>餐厅</strong><small>Русский ресторан</small></span>
+              </label>
+              <label className={`scenario-option ${scenario === "supermarket" ? "selected" : ""}`}>
+                <input type="radio" name="receipt-scenario" checked={scenario === "supermarket"} onChange={() => switchScenario("supermarket")} />
+                <span className="scenario-icon">超</span>
+                <span><strong>超市</strong><small>Магазин / продукты</small></span>
+              </label>
+            </div>
+          </div>
+
           <div className="control-card">
             <div className="card-heading">
-              <div><span className="section-index">01</span><h3>纸张规格</h3></div>
+              <div><span className="section-index">02</span><h3>纸张规格</h3></div>
               <span className="muted">打印设置</span>
             </div>
             <div className="format-options">
@@ -333,7 +473,7 @@ export default function Home() {
 
           <div className="control-card">
             <div className="card-heading">
-              <div><span className="section-index">02</span><h3>店铺与订单</h3></div>
+              <div><span className="section-index">03</span><h3>店铺与订单</h3></div>
               <span className="muted">俄文打印内容</span>
             </div>
             <label className="field-label">店名 <span>可修改</span>
@@ -351,20 +491,38 @@ export default function Home() {
                 <option>НАЛИЧНЫМИ</option>
               </select>
             </label>
+            <label className="field-label">节省金额（卢布）
+              <input type="number" min="0" step="0.01" value={receipt.savings ?? 0} onChange={(event) => updateReceipt("savings", Math.max(0, Number(event.target.value) || 0))} />
+            </label>
+            <div className="field-grid three">
+              <label className="field-label">税控号 ФН<input value={receipt.fn ?? ""} onChange={(event) => updateReceipt("fn", event.target.value)} /></label>
+              <label className="field-label">单据号 ФД<input value={receipt.fiscalDocument ?? ""} onChange={(event) => updateReceipt("fiscalDocument", event.target.value)} /></label>
+              <label className="field-label">特征码 ФП<input value={receipt.fiscalSign ?? ""} onChange={(event) => updateReceipt("fiscalSign", event.target.value)} /></label>
+            </div>
           </div>
 
           <div className="control-card menu-card">
             <div className="card-heading">
-              <div><span className="section-index">03</span><h3>选择菜单</h3></div>
-              <span className="muted">点击加入本单</span>
+              <div><span className="section-index">04</span><h3>选择菜单</h3></div>
+              <span className="muted">{filteredMenu.length} 项可选</span>
             </div>
-            <div className="menu-list">
-              {menu.map((item, index) => (
+            <div className="menu-tools">
+              <input aria-label="搜索菜单" placeholder="搜索俄文菜名" value={menuQuery} onChange={(event) => setMenuQuery(event.target.value)} />
+              <select aria-label="菜单分类" value={menuCategory} onChange={(event) => setMenuCategory(event.target.value as MenuFilter)}>
+                {menuCategories.map((category) => <option key={category} value={category}>{category === "全部" ? "全部分类" : category}</option>)}
+              </select>
+            </div>
+            <div className="menu-filter-tabs" aria-label="菜单分类快捷筛选">
+              {menuCategories.map((category) => <button type="button" className={menuCategory === category ? "active" : ""} key={category} aria-pressed={menuCategory === category} onClick={() => setMenuCategory(category)}>{category}</button>)}
+            </div>
+            <div className="menu-list menu-list-scroll">
+              {filteredMenu.length === 0 && <div className="empty-order">没有找到匹配的菜品。</div>}
+              {filteredMenu.map((item, index) => (
                 <div className="menu-row" key={item.id}>
                   <div className="menu-number">{String(index + 1).padStart(2, "0")}</div>
-                  <div className="menu-copy"><strong>{item.name}</strong><span>{formatMoney(item.price)} ₽</span></div>
+                  <div className="menu-copy"><strong>{scenario === "supermarket" && item.code ? `${item.code} · ` : ""}{item.name}</strong><span><b>{item.category}</b> · {formatMoney(item.price)} ₽{scenario === "supermarket" ? ` · НДС ${item.vat ?? 22}%` : ""}</span></div>
                   <button className="icon-button add-button" onClick={() => addToOrder(item)} aria-label={`加入${item.name}`}>+</button>
-                  {index >= DEFAULT_MENU.length && <button className="icon-button delete-button" onClick={() => deleteMenuItem(item.id)} aria-label={`删除${item.name}`}>×</button>}
+                  {!currentDefaultMenu.some((defaultItem) => defaultItem.id === item.id) && <button className="icon-button delete-button" onClick={() => deleteMenuItem(item.id)} aria-label={`删除${item.name}`}>×</button>}
                 </div>
               ))}
             </div>
@@ -373,6 +531,9 @@ export default function Home() {
               <div className="field-grid custom-grid">
                 <input placeholder="俄文菜品名称" value={newMenuName} onChange={(event) => setNewMenuName(event.target.value)} />
                 <input type="number" min="0" step="0.01" placeholder="单价" value={newMenuPrice} onChange={(event) => setNewMenuPrice(event.target.value)} />
+                <select aria-label="新增菜品分类" value={newMenuCategory} onChange={(event) => setNewMenuCategory(event.target.value as MenuCategory)}>
+                  {menuCategories.filter((category): category is MenuCategory => category !== "全部").map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
               </div>
               <div className="custom-actions">
                 <button className="button button-soft" onClick={() => addCustomMenuItem(false)}>仅加入本单</button>
@@ -383,8 +544,8 @@ export default function Home() {
 
           <div className="control-card">
             <div className="card-heading">
-              <div><span className="section-index">04</span><h3>本次点单</h3></div>
-              <span className="total-chip">{formatMoney(total)} ₽</span>
+              <div><span className="section-index">05</span><h3>本次点单</h3></div>
+              <div className="order-actions"><span className="total-chip">{formatMoney(total)} ₽</span><button className="button button-clear" onClick={clearOrder} disabled={receipt.items.length === 0}>清空本单</button></div>
             </div>
             <div className="order-list">
               {receipt.items.length === 0 && <div className="empty-order">还没有商品，从上面的菜单中点击 + 加入。</div>}
@@ -404,20 +565,20 @@ export default function Home() {
 
           <div className="control-card">
             <div className="card-heading">
-              <div><span className="section-index">05</span><h3>二维码位置</h3></div>
-              <span className="muted">单位：mm / {format}mm</span>
+              <div><span className="section-index">06</span><h3>二维码位置</h3></div>
+              <span className="muted">与底部演示信息并排 · mm / {format}mm</span>
             </div>
             <div className="qr-position-grid">
               <label className="field-label">X 左右<input type="number" min="0" max={currentPaper.content} value={qr.x} onChange={(event) => updateQr("x", event.target.value)} /></label>
-              <label className="field-label">Y 上下<input type="number" min="0" max="120" value={qr.y} onChange={(event) => updateQr("y", event.target.value)} /></label>
+              <label className="field-label">Y 上下<input type="number" min="-10" max="120" value={qr.y} onChange={(event) => updateQr("y", event.target.value)} /></label>
               <label className="field-label">尺寸<input type="number" min="14" max={currentPaper.content} value={qr.size} onChange={(event) => updateQr("size", event.target.value)} /></label>
             </div>
-            <div className="qr-payload-box"><div><span className="small-label">扫码后显示的文本</span><span className="plain-badge">非税务数据</span></div><textarea readOnly value={qrPayload} /></div>
+            <div className="qr-payload-box"><div><span className="small-label">扫码后显示的文本</span><span className="plain-badge">非税务演示</span></div><p className="qr-note">扫码可看到与本单同步的日期、金额和税控字段，格式与真实收据一致；不连接、不模拟俄罗斯税务系统。</p><textarea readOnly value={qrPayload} /></div>
           </div>
 
           <div className="control-card history-card">
             <div className="card-heading">
-              <div><span className="section-index">06</span><h3>本机历史</h3></div>
+              <div><span className="section-index">07</span><h3>本机历史</h3></div>
               <span className="muted">最多保存50张</span>
             </div>
             {history.length === 0 ? <div className="empty-history">保存后，小票会出现在这里。</div> : <div className="history-list">
@@ -433,31 +594,79 @@ export default function Home() {
           <div className="preview-header"><div><span className="eyebrow accent">LIVE PREVIEW</span><h3>打印预览</h3></div><button className="button button-print" onClick={() => window.print()}><span>↗</span> 打印小票</button></div>
           <div className="preview-stage">
             <div className={`receipt-page page--${format}`} style={{ ["--paper-width" as string]: `${currentPaper.paper}mm` } as React.CSSProperties}>
-              <div id="print-area" className={`receipt-paper paper--${format}`} style={{ ["--content-width" as string]: `${currentPaper.content}mm`, ["--qr-x" as string]: `${qr.x}mm`, ["--qr-y" as string]: `${qr.y}mm`, ["--qr-size" as string]: `${qr.size}mm` } as React.CSSProperties}>
-                <div className="receipt-top-line">— — — — — — — — — — — —</div>
-                <div className="receipt-store">{receipt.storeName}</div>
-                <div className="receipt-subtitle">КАССОВЫЙ ЧЕК</div>
-                <div className="receipt-rule" />
-                <div className="receipt-items">
-                  {receipt.items.map((item) => <div className="receipt-item" key={item.id}>
-                    <div className="receipt-item-name">{item.name}</div>
-                    <div className="receipt-item-price"><span>{formatMoney(item.price)}*{item.qty} шт.</span><strong>= {formatMoney(item.qty * item.price)}</strong></div>
-                    <div className="receipt-tax">НДС не облагается</div>
-                  </div>)}
-                </div>
-                <div className="receipt-rule" />
-                <div className="receipt-summary">
-                  <div className="receipt-row"><span>Номер продажи</span><strong>{receipt.saleNumber}</strong></div>
-                  <div className="receipt-row receipt-grand-total"><span>ИТОГ</span><strong>= {formatMoney(total)}</strong></div>
-                  <div className="receipt-row"><span>СУММА БЕЗ НДС</span><strong>= {formatMoney(total)}</strong></div>
-                  <div className="receipt-row"><span>БЕЗНАЛИЧНЫМИ</span><strong>= {formatMoney(total)}</strong></div>
-                  <div className="receipt-row"><span>*{receipt.payment}</span><strong>= {formatMoney(total)}</strong></div>
-                </div>
-                <div className="receipt-rule" />
-                <div className="receipt-company"><div>КАССИР <span>{receipt.cashier}</span></div><div>{receipt.company}</div><div>{receipt.address}</div><div>МЕСТО РАСЧЕТОВ <span>Ресторан "Бэйхай"</span></div></div>
-                <div className="receipt-tax-fields">{DEMO_TAX_FIELDS.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}<div><span>{formatDate(receipt.date)} {receipt.time}</span><strong /></div><div className="receipt-income">ПРИХОД</div></div>
-                <div className="receipt-qr-slot"><div className="receipt-qr" aria-label="非税务二维码">{qrImage ? <img src={qrImage} alt="本次小票二维码" /> : <span>QR</span>}</div></div>
-                <div className="receipt-bottom-line">— — — — — — — — — — — —</div>
+              <div id="print-area" className={`receipt-paper paper--${format} receipt--${scenario}`} style={{ ["--content-width" as string]: `${currentPaper.content}mm`, ["--qr-x" as string]: `${qr.x}mm`, ["--qr-y" as string]: `${qr.y}mm`, ["--qr-size" as string]: `${qr.size}mm` } as React.CSSProperties}>
+                {scenario === "restaurant" ? (
+                  <>
+                    <div className="receipt-top-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
+                    <div className="receipt-store">{receipt.storeName}</div>
+                    <div className="receipt-rule" />
+                    <div className="receipt-subtitle">КАССОВЫЙ ЧЕК</div>
+                    <div className="receipt-rule" />
+                    <div className="receipt-items">
+                      {receipt.items.map((item) => <div className="receipt-item" key={item.id}>
+                        <div className="receipt-item-name">{item.name}</div>
+                        <div className="receipt-item-price"><span>{formatMoney(item.price)}*{item.qty} шт.</span><strong>={formatMoney(item.qty * item.price)}</strong></div>
+                        <div className="receipt-tax">НДС не облагается</div>
+                      </div>)}
+                    </div>
+                    <div className="receipt-rule" />
+                    <div className="receipt-summary">
+                      <div className="receipt-row"><span>Номер продажи</span><strong>{receipt.saleNumber}</strong></div>
+                      <div className="receipt-row receipt-grand-total"><span>ИТОГ</span><strong>={formatMoney(total)}</strong></div>
+                      <div className="receipt-row"><span>СУММА БЕЗ НДС</span><strong>={formatMoney(total)}</strong></div>
+                      <div className="receipt-row"><span>БЕЗНАЛИЧНЫМИ</span><strong>={formatMoney(total)}</strong></div>
+                      <div className="receipt-row"><span>*{receipt.payment}</span><strong>={formatMoney(total)}</strong></div>
+                    </div>
+                    <div className="receipt-rule" />
+                    <div className="receipt-company"><div>КАССИР <span>{receipt.cashier}</span></div><div>{receipt.company}</div><div>{receipt.address}</div><div>МЕСТО РАСЧЕТОВ <span>Ресторан &quot;Бэйхай&quot;</span></div></div>
+                    <div className="receipt-bottom-cluster">
+                      <div className="receipt-tax-fields"><div><span>{DEMO_TAX_FIELDS[0][0]}</span><strong>{DEMO_TAX_FIELDS[0][1]}</strong></div><div><span>{formatDate(receipt.date)} {receipt.time}</span><strong /></div><div><span>{DEMO_TAX_FIELDS[1][0]}</span><strong>{receipt.rn ?? DEMO_TAX_FIELDS[1][1]}</strong></div><div><span>{DEMO_TAX_FIELDS[2][0]}</span><strong>{receipt.inn ?? DEMO_TAX_FIELDS[2][1]}</strong></div><div><span>{DEMO_TAX_FIELDS[3][0]}</span><strong>{receipt.fn ?? DEMO_TAX_FIELDS[3][1]}</strong></div><div><span>{DEMO_TAX_FIELDS[4][0]}</span><strong>{receipt.fiscalDocument ?? DEMO_TAX_FIELDS[4][1]}</strong></div><div><span>{DEMO_TAX_FIELDS[5][0]}</span><strong>{receipt.fiscalSign ?? DEMO_TAX_FIELDS[5][1]}</strong></div><div className="receipt-income">ПРИХОД</div></div>
+                      <div className="receipt-qr-slot"><div className="receipt-qr" aria-label="非税务二维码">{qrImage ? <img src={qrImage} alt="本次小票非税务演示二维码" /> : <span>QR</span>}</div></div>
+                    </div>
+                    <div className="receipt-bottom-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="receipt-top-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
+                    <div className="receipt-store">{receipt.storeName}</div>
+                    <div className="market-address">{receipt.address}</div>
+                    <div className="receipt-subtitle">КАССОВЫЙ ЧЕК <span>{receipt.saleNumber}</span> (ПРИХОД)</div>
+                    <div className="receipt-rule" />
+                    <div className="market-table-head"><span>КОД ТОВАРА</span><span>ТОВАРЫ</span><span>ЦЕНА</span><span>КОЛ-ВО</span><span>НДС</span><span>СТОИМОСТЬ</span></div>
+                    <div className="receipt-rule" />
+                    <div className="market-items">
+                      {receipt.items.map((item) => <div className="market-item" key={item.id}>
+                        <span>{item.code ?? "000000"}</span><span>{item.name}</span><span>{formatMoney(item.price)}</span><span>*{item.qty}</span><span>{item.vat ?? 22}%</span><strong>={formatMoney(item.qty * item.price)}</strong>
+                      </div>)}
+                    </div>
+                    <div className="receipt-rule" />
+                    <div className="market-summary">
+                      <div className="receipt-row"><span>ИТОГ</span><strong>={formatMoney(total)}</strong></div>
+                      <div className="receipt-row"><span>{receipt.payment}</span><strong>={formatMoney(total)}</strong></div>
+                      <div className="market-vat-row"><span>СУММА НДС 10%</span><strong>={formatMoney(vatTotal(10))}</strong><span>СУММА НДС 22%</span><strong>={formatMoney(vatTotal(22))}</strong></div>
+                      <div className="receipt-row"><span>ВЫ СЭКОНОМИЛИ, РУБ</span><strong>={formatMoney(receipt.savings ?? 0)}</strong></div>
+                    </div>
+                    <div className="receipt-rule" />
+                    <div className="market-thanks">СПАСИБО ЗА ПОКУПКУ!</div>
+                    <div className="receipt-rule" />
+                    <div className="receipt-bottom-cluster market-bottom-cluster">
+                      <div className="market-footer">
+                        <div>КАССИР</div>
+                        <div>{receipt.cashier}</div>
+                        <div>САЙТ ФНС WWW.NALOG.GOV.RU</div>
+                        <div>МЕСТО РАСЧЕТОВ {receipt.place ?? 'МАГАЗИН "РЕМИ"'}</div>
+                        <div>КАССА {receipt.register ?? "0006.01"} СМЕНА {receipt.shift ?? "0230"} {formatDate(receipt.date)} {receipt.time}</div>
+                        <div>СНО {receipt.taxSystem ?? "ОСН"} ФД {receipt.fiscalDocument ?? "54784"} ФП {receipt.fiscalSign ?? "0082339468"}</div>
+                        <div>ЗН ККТ {receipt.rn ?? "0008454318052675"}</div>
+                        <div>ФН {receipt.fn ?? "7384440901113190"}</div>
+                        <div>РН ККТ {receipt.rn ?? "0008454318052675"} ИНН {receipt.inn ?? "2503029218"}</div>
+                        <div>САЙТ ОФД {receipt.ofd ?? "CASH-NNT.KONTUR.RU"}</div>
+                      </div>
+                      <div className="receipt-qr-slot"><div className="receipt-qr" aria-label="非税务二维码">{qrImage ? <img src={qrImage} alt="本次小票非税务演示二维码" /> : <span>QR</span>}</div></div>
+                    </div>
+                    <div className="receipt-bottom-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
+                  </>
+                )}
               </div>
             </div>
           </div>
