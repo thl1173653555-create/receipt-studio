@@ -2,7 +2,7 @@
 
 A printable Russian **restaurant & supermarket receipt generator**. Build a
 receipt from a menu, preview it live, print it or export it as PDF — with
-formats and layouts matching real Russian fiscal receipts (58mm / 80mm).
+formats and layouts matching real Russian receipts (58mm / 80mm).
 
 > Built on [vinext](https://github.com/cloudflare/vinext) (Next.js 16 + Vite)
 > with optional Cloudflare D1 / Drizzle support.
@@ -11,10 +11,7 @@ formats and layouts matching real Russian fiscal receipts (58mm / 80mm).
 
 - **Two scenarios**: restaurant (58mm focused) and supermarket (80mm focused)
   templates, layouts aligned to real Russian receipts
-- **Fiscal-look fields**: `ЗН ККТ`, `РН ККТ`, `ИНН`, `ФН`, `ФД`, `ФП`,
-  `ПРИХОД` — editable in the form and rendered in the receipt
-- **Auto QR code**: generated per order in the standard fiscal format
-  (`t=&s=&fn=&i=&fp=&n=`), updates live
+- **Auto QR code**: generated per order, updates live with the receipt
 - **WYSIWYG editing**: every field binds to the live preview
 - **Two paper sizes**: 58mm and 80mm, with per-size typography
 - **Print & PDF**: print stylesheet (`@media print`) outputs a clean
@@ -30,7 +27,7 @@ formats and layouts matching real Russian fiscal receipts (58mm / 80mm).
 | UI | React 19, Tailwind CSS 4 |
 | Build | [Vite](https://vite.dev/) 8 + vinext |
 | Data (optional) | [Drizzle ORM](https://orm.drizzle.team/) + Cloudflare D1 |
-| QR | `qrcode` (standard fiscal payload) |
+| QR | `qrcode` |
 
 ## 🚀 Quick Start
 
