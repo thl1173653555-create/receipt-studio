@@ -106,6 +106,7 @@ button { cursor: pointer; }
 .format-roll-80 { width: 29px; }
 .checkmark { display: none; margin-left: auto; color: var(--teal); font-size: 14px; }
 .selected .checkmark { display: block; }
+.receipt-font-select { margin-top: 15px; }
 
 .field-label, .small-label { display: block; color: #6e807c; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .field-label > span { color: var(--coral); margin-left: 6px; font-size: 9px; }
@@ -172,13 +173,17 @@ button { cursor: pointer; }
 .preview-header { justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .preview-stage { min-height: 790px; display: grid; place-items: start center; overflow: auto; padding: 30px 20px 44px; border: 1px solid rgba(194, 210, 203, .75); border-radius: 18px; background: linear-gradient(145deg, #dfe8e1, #eaf0ea); box-shadow: var(--shadow); }
 .receipt-page { width: var(--paper-width); min-width: var(--paper-width); padding: 0 5px; }
-.receipt-paper { width: var(--content-width); min-height: 670px; position: relative; margin: 0 auto; overflow: hidden; padding: 12px 10px 10px; color: #202120; background: #ffffff; box-shadow: 0 16px 30px rgba(33, 47, 43, .15); font-family: "TicketMono", "Liberation Mono", "Courier New", "Lucida Console", monospace; font-size: 10px; font-weight: 800; line-height: 1.12; }
-.paper--58 { font-size: 8px; padding-left: 6px; padding-right: 6px; }
-.receipt-top-line, .receipt-bottom-line { color: #8b8b80; overflow: hidden; white-space: nowrap; letter-spacing: 1px; text-align: center; }
-.receipt-paper strong { font-weight: 800; }
-.receipt-store { margin: 8px 0 5px; font-weight: 800; line-height: 1.35; text-align: center; }
-.receipt-subtitle { margin-bottom: 6px; font-size: 1.05em; font-weight: 800; text-align: center; }
-.receipt-rule { height: 1px; margin: 5px 0; border-top: 1px dashed #8c8c7e; }
+.receipt-paper { width: var(--content-width); min-height: 670px; position: relative; margin: 0 auto; overflow: hidden; padding: 12px 10px 10px; color: #000; background: #ffffff; box-shadow: 0 16px 30px rgba(33, 47, 43, .15); font-family: "TicketMono", "Liberation Mono", "Courier New", monospace; font-size: 12px; font-weight: 400; line-height: 1.16; }
+.receipt-paper.font--ticket-mono { font-family: "TicketMono", "Liberation Mono", "Courier New", monospace; }
+.receipt-paper.font--courier-new { font-family: "Courier New", Courier, monospace; font-weight: 700; }
+.receipt-paper.font--consolas { font-family: Consolas, "Courier New", monospace; }
+.receipt-paper.font--arial { font-family: Arial, sans-serif; }
+.paper--58 { font-size: 10px; padding-left: 6px; padding-right: 6px; }
+.receipt-top-line, .receipt-bottom-line { color: #000; overflow: hidden; white-space: nowrap; letter-spacing: 1px; text-align: center; }
+.receipt-paper strong { font-weight: 700; }
+.receipt-store { margin: 8px 0 5px; font-weight: 700; line-height: 1.35; text-align: center; }
+.receipt-subtitle { margin-bottom: 6px; font-size: 1.05em; font-weight: 700; text-align: center; }
+.receipt-rule { height: 1px; margin: 5px 0; border-top: 1px dashed #000; }
 .receipt-item { margin-bottom: 5px; }
 .receipt-item-name { white-space: pre-wrap; }
 .receipt-item-price { justify-content: space-between; gap: 6px; margin-top: 1px; padding-left: 10px; }
@@ -187,16 +192,16 @@ button { cursor: pointer; }
 .receipt-row { justify-content: space-between; gap: 10px; margin: 2px 0; }
 .receipt-row span:first-child { min-width: 0; }
 .receipt-row strong { white-space: nowrap; }
-.receipt-grand-total { margin: 3px 0; font-size: 1.45em; font-weight: 800; }
+.receipt-grand-total { margin: 3px 0; font-size: 1.45em; font-weight: 700; }
 .receipt-company { display: grid; gap: 2px; line-height: 1.2; }
-.receipt-company span { font-weight: 800; }
+.receipt-company span { font-weight: 700; }
 .receipt-bottom-cluster { position: relative; min-height: calc(var(--qr-y) + var(--qr-size) + 9px); margin-top: 3px; overflow: visible; }
 .receipt-tax-fields { position: relative; z-index: 1; width: calc(100% - var(--qr-size) - 1px); min-width: 0; margin-top: 0; overflow: hidden; }
 .receipt-tax-fields > div { justify-content: flex-start; gap: 1ch; min-width: 0; margin: 1px 0; }
 .receipt-tax-fields > div:first-child { margin-top: 0; }
 .receipt-tax-fields span { min-width: 7ch; white-space: nowrap; }
-.receipt-tax-fields strong { min-width: 0; overflow: hidden; font-weight: 800; white-space: nowrap; }
-.receipt-income { font-weight: 800; }
+.receipt-tax-fields strong { min-width: 0; overflow: hidden; font-weight: 700; white-space: nowrap; }
+.receipt-income { font-weight: 700; }
 .receipt-qr-slot { position: absolute; inset: 0; }
 .receipt-qr { position: absolute; top: var(--qr-y); left: var(--qr-x); width: var(--qr-size); height: var(--qr-size); display: grid; place-items: center; }
 .receipt-qr img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
@@ -208,27 +213,27 @@ button { cursor: pointer; }
 .market-table-head, .market-item { display: grid; gap: 3px; align-items: baseline; }
 .market-table-head { grid-template-columns: 10ch minmax(0, 1fr) 5ch 6ch 4ch 9ch; }
 .market-item { grid-template-columns: 6ch minmax(0, 1fr) 5ch 3.5ch 3ch 7ch; }
-.market-table-head { font-size: .86em; font-weight: 800; line-height: 1.1; }
+.market-table-head { font-size: .86em; font-weight: 700; line-height: 1.1; }
 .market-table-head span, .market-item > span, .market-item strong { min-width: 0; overflow: hidden; white-space: nowrap; }
 .market-item { margin: 2px 0; line-height: 1.12; }
 .market-item > span:nth-child(2) { overflow: hidden; white-space: normal; word-break: break-word; }
 .market-item > span:nth-child(3), .market-item > span:nth-child(4), .market-item > span:nth-child(5), .market-item strong { text-align: right; }
-.market-item strong { font-weight: 800; }
+.market-item strong { font-weight: 700; }
 .market-vat-row { display: grid; grid-template-columns: auto auto auto auto; gap: 4px; align-items: baseline; margin: 3px 0; }
 .market-vat-row span:nth-child(3) { margin-left: auto; }
-.market-thanks { margin: 6px 0; font-weight: 800; text-align: center; }
+.market-thanks { margin: 6px 0; font-weight: 700; text-align: center; }
 .market-bottom-cluster { min-height: calc(var(--qr-y) + var(--qr-size) + 9px); }
 .market-footer { position: relative; z-index: 1; display: grid; width: calc(100% - var(--qr-size) - 1px); min-width: 0; gap: 2px; line-height: 1.18; overflow: hidden; padding-right: 4px; }
 .market-footer div { min-width: 0; overflow: visible; white-space: normal; word-break: break-word; }
-.paper--80 .market-table-head, .paper--80 .market-item { font-size: 9px; }
+.paper--80 .market-table-head, .paper--80 .market-item { font-size: 10px; }
 .paper--80 .market-item > span:nth-child(2) { white-space: nowrap; }
 .paper--80 .market-footer { font-size: 8px; gap: 1px; line-height: 1.1; }
 .paper--80 .market-footer div { white-space: nowrap; overflow: hidden; }
-.paper--80 .market-item { margin: 1px 0; }
-.paper--58 .market-table-head, .paper--58 .market-item { grid-template-columns: 5ch minmax(0, 1fr) 6ch 3.5ch 3.5ch 7ch; gap: 1px; font-size: 6.3px; }
-.paper--58 .market-table-head { font-size: 5.9px; }
+.paper--80 .market-item { grid-template-columns: 6ch minmax(0, 1fr) 6ch 4ch 3.5ch 8ch; margin: 1px 0; }
+.paper--58 .market-table-head, .paper--58 .market-item { grid-template-columns: 5ch minmax(0, 1fr) 6ch 3.5ch 3.5ch 7ch; gap: 2px; font-size: 7.5px; }
+.paper--58 .market-table-head { font-size: 7px; }
 .paper--58 .market-footer { gap: 2px; font-size: 6.2px; }
-.paper--58 .market-vat-row { gap: 2px; font-size: 6px; }
+.paper--58 .market-vat-row { gap: 2px; font-size: 7.2px; }
 .paper--58 .market-thanks { margin: 4px 0; }
 .paper--58 .receipt-tax-fields { font-size: 6.5px; }
 .paper--58.receipt--restaurant .receipt-bottom-line { display: none; }
@@ -237,6 +242,9 @@ button { cursor: pointer; }
 .paper--58 .receipt-tax-fields span { min-width: 7ch; }
 .preview-footer { justify-content: space-between; gap: 10px; padding: 10px 4px 0; color: #8a9994; font-size: 10px; }
 .preview-footer span { display: inline-flex; align-items: center; gap: 6px; }
+
+.print-measure-host { position: fixed; z-index: -1; top: 0; left: -10000px; width: var(--paper-width); visibility: hidden; pointer-events: none; }
+.print-measure-host .receipt-paper { min-height: 0; overflow: visible; box-shadow: none; }
 
 .toast { position: fixed; z-index: 10; right: 26px; bottom: 24px; padding: 12px 15px; border: 1px solid #8fc5b7; border-radius: 10px; color: #fff; background: var(--teal-dark); box-shadow: 0 12px 30px rgba(8,76,74,.2); font-size: 12px; }
 
@@ -264,11 +272,15 @@ button { cursor: pointer; }
 
 @media print {
   @page { margin: 0; }
-  html, body { min-width: 0; background: #fff; }
+  html, body { min-width: 0; margin: 0; background: #fff; }
   .app-shell { width: auto; padding: 0; }
   .topbar, .page-intro, .editor-column, .preview-header, .preview-footer { display: none !important; }
   .workspace, .preview-column, .preview-stage { display: block; min-height: 0; padding: 0; border: 0; overflow: visible; background: transparent; box-shadow: none; }
   .receipt-page { width: var(--paper-width); min-width: var(--paper-width); padding: 0; }
-  .receipt-paper { width: var(--content-width); min-height: 0; margin: 0 auto; overflow: visible; box-shadow: none; }
+  .receipt-paper { width: var(--content-width); min-height: 0; margin: 0 auto; overflow: visible; color: #000; background: #fff; box-shadow: none; font-weight: 400; line-height: 1.16; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper--58 { font-size: 10px; }
+  .paper--80 { font-size: 12px; }
+  .receipt-top-line, .receipt-bottom-line { color: #000; }
+  .receipt-rule { border-color: #000; }
   .toast { display: none; }
 }

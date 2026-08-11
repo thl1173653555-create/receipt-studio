@@ -4,9 +4,11 @@ import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import menuFile from "../data/menu.json";
 import supermarketMenuFile from "../data/supermarket-menu.json";
+import { buildPrintPageRule } from "./print-page.mjs";
 
 type PaperFormat = "58" | "80";
 type ReceiptScenario = "restaurant" | "supermarket";
+type ReceiptFont = "ticket-mono" | "courier-new" | "consolas" | "arial";
 type MenuCategory =
   | "冷菜" | "热菜" | "主食" | "饮品" | "酒水" | "甜品" | "其他"
   | "Молочные продукты" | "Хлеб и выпечка" | "Бакалея" | "Сладости" | "Снеки"
@@ -60,6 +62,7 @@ type SavedReceipt = {
   savedAt: string;
   scenario?: ReceiptScenario;
   format: PaperFormat;
+  font?: ReceiptFont;
   data: ReceiptData;
   qr: Record<PaperFormat, QrPosition>;
 };
@@ -77,6 +80,13 @@ const MENU_CATEGORIES_BY_SCENARIO: Record<ReceiptScenario, MenuFilter[]> = {
 const PAPER: Record<PaperFormat, { label: string; paper: number; content: number }> = {
   "58": { label: "58mm / 48mm打印宽度", paper: 58, content: 48 },
   "80": { label: "80mm / 80mm打印宽度", paper: 80, content: 80 },
+};
+
+const RECEIPT_FONTS: Record<ReceiptFont, { label: string; detail: string }> = {
+  "ticket-mono": { label: "Liberation Mono", detail: "热敏小票默认" },
+  "courier-new": { label: "Courier New", detail: "经典俄式 POS（加粗）" },
+  consolas: { label: "Consolas", detail: "清晰等宽" },
+  arial: { label: "Arial", detail: "无衬线俄文" },
 };
 
 const DEFAULT_MENUS: Record<ReceiptScenario, MenuItem[]> = {
@@ -183,6 +193,7 @@ function receiptTemplateForScenario(scenario: ReceiptScenario) {
 export default function Home() {
   const [scenario, setScenario] = useState<ReceiptScenario>("restaurant");
   const [format, setFormat] = useState<PaperFormat>("58");
+  const [receiptFont, setReceiptFont] = useState<ReceiptFont>("ticket-mono");
   const [receipt, setReceipt] = useState<ReceiptData>(DEFAULT_RECEIPT);
   const [qrPositions, setQrPositions] = useState(DEFAULT_QR);
   const [menu, setMenu] = useState<MenuItem[]>(DEFAULT_MENU);
@@ -355,6 +366,7 @@ export default function Home() {
       savedAt: new Date().toISOString(),
       scenario,
       format,
+      font: receiptFont,
       data: receipt,
       qr: qrPositions,
     };
@@ -369,6 +381,7 @@ export default function Home() {
     setScenario(entry.scenario ?? "restaurant");
     setReceipt(entry.data);
     setFormat(entry.format);
+    setReceiptFont(entry.font ?? "ticket-mono");
     setQrPositions(entry.qr);
     setActiveId(entry.id);
     setNotice("已打开历史小票");
@@ -402,6 +415,47 @@ export default function Home() {
     setQrPositions(DEFAULT_QR);
     setActiveId(null);
     setNotice(nextScenario === "supermarket" ? "已切换到超市场景" : "已切换到餐厅场景");
+  }
+
+  async function printReceipt() {
+    const printArea = document.getElementById("print-area");
+    if (!printArea) return;
+
+    await document.fonts.ready;
+
+    const measureHost = document.createElement("div");
+    measureHost.className = "print-measure-host";
+    measureHost.style.setProperty("--paper-width", `${currentPaper.paper}mm`);
+
+    const printCopy = printArea.cloneNode(true) as HTMLElement;
+    printCopy.removeAttribute("id");
+    measureHost.appendChild(printCopy);
+    document.body.appendChild(measureHost);
+
+    const images = Array.from(printCopy.querySelectorAll("img"));
+    await Promise.all(images.map((image) => image.decode().catch(() => undefined)));
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    const page = buildPrintPageRule(
+      currentPaper.paper,
+      printCopy.getBoundingClientRect().height,
+    );
+    measureHost.remove();
+
+    document.getElementById("receipt-print-page-size")?.remove();
+    const pageStyle = document.createElement("style");
+    pageStyle.id = "receipt-print-page-size";
+    pageStyle.textContent = page.css;
+    document.head.appendChild(pageStyle);
+    document.documentElement.dataset.receiptPrinting = format;
+
+    const cleanup = () => {
+      pageStyle.remove();
+      delete document.documentElement.dataset.receiptPrinting;
+    };
+    window.addEventListener("afterprint", cleanup, { once: true });
+
+    requestAnimationFrame(() => window.print());
   }
 
   return (
@@ -469,6 +523,11 @@ export default function Home() {
                 </label>
               ))}
             </div>
+            <label className="field-label receipt-font-select">小票字体 <span>预览与打印同步</span>
+              <select name="receipt-font" value={receiptFont} onChange={(event) => { setReceiptFont(event.target.value as ReceiptFont); setActiveId(null); }}>
+                {(Object.keys(RECEIPT_FONTS) as ReceiptFont[]).map((key) => <option key={key} value={key}>{RECEIPT_FONTS[key].label} · {RECEIPT_FONTS[key].detail}</option>)}
+              </select>
+            </label>
           </div>
 
           <div className="control-card">
@@ -591,10 +650,10 @@ export default function Home() {
         </section>
 
         <section className="preview-column" aria-label="小票预览区">
-          <div className="preview-header"><div><span className="eyebrow accent">LIVE PREVIEW</span><h3>打印预览</h3></div><button className="button button-print" onClick={() => window.print()}><span>↗</span> 打印小票</button></div>
+          <div className="preview-header"><div><span className="eyebrow accent">LIVE PREVIEW</span><h3>打印预览</h3></div><button className="button button-print" type="button" onClick={printReceipt}><span>↗</span> 打印小票</button></div>
           <div className="preview-stage">
             <div className={`receipt-page page--${format}`} style={{ ["--paper-width" as string]: `${currentPaper.paper}mm` } as React.CSSProperties}>
-              <div id="print-area" className={`receipt-paper paper--${format} receipt--${scenario}`} style={{ ["--content-width" as string]: `${currentPaper.content}mm`, ["--qr-x" as string]: `${qr.x}mm`, ["--qr-y" as string]: `${qr.y}mm`, ["--qr-size" as string]: `${qr.size}mm` } as React.CSSProperties}>
+              <div id="print-area" className={`receipt-paper paper--${format} receipt--${scenario} font--${receiptFont}`} style={{ ["--content-width" as string]: `${currentPaper.content}mm`, ["--qr-x" as string]: `${qr.x}mm`, ["--qr-y" as string]: `${qr.y}mm`, ["--qr-size" as string]: `${qr.size}mm` } as React.CSSProperties}>
                 {scenario === "restaurant" ? (
                   <>
                     <div className="receipt-top-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
