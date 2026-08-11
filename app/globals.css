@@ -1,16 +1,18 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "Liberation Mono";
-  src: url("/fonts/liberation-mono-regular.ttf") format("truetype");
-  font-weight: 400 600;
-  font-display: swap;
+  font-family: "TicketMono";
+  src: url("/fonts/liberation-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
 }
 @font-face {
-  font-family: "Liberation Mono";
-  src: url("/fonts/liberation-mono-bold.ttf") format("truetype");
-  font-weight: 700 900;
-  font-display: swap;
+  font-family: "TicketMono";
+  src: url("/fonts/liberation-mono-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
 }
 
 :root {
@@ -170,7 +172,7 @@ button { cursor: pointer; }
 .preview-header { justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .preview-stage { min-height: 790px; display: grid; place-items: start center; overflow: auto; padding: 30px 20px 44px; border: 1px solid rgba(194, 210, 203, .75); border-radius: 18px; background: linear-gradient(145deg, #dfe8e1, #eaf0ea); box-shadow: var(--shadow); }
 .receipt-page { width: var(--paper-width); min-width: var(--paper-width); padding: 0 5px; }
-.receipt-paper { width: var(--content-width); min-height: 670px; position: relative; margin: 0 auto; overflow: hidden; padding: 12px 10px 10px; color: #202120; background: #ffffff; box-shadow: 0 16px 30px rgba(33, 47, 43, .15); font-family: "Liberation Mono", "Courier New", "Lucida Console", monospace; font-size: 10px; font-weight: 800; line-height: 1.12; }
+.receipt-paper { width: var(--content-width); min-height: 670px; position: relative; margin: 0 auto; overflow: hidden; padding: 12px 10px 10px; color: #202120; background: #ffffff; box-shadow: 0 16px 30px rgba(33, 47, 43, .15); font-family: "TicketMono", "Liberation Mono", "Courier New", "Lucida Console", monospace; font-size: 10px; font-weight: 800; line-height: 1.12; }
 .paper--58 { font-size: 8px; padding-left: 6px; padding-right: 6px; }
 .receipt-top-line, .receipt-bottom-line { color: #8b8b80; overflow: hidden; white-space: nowrap; letter-spacing: 1px; text-align: center; }
 .receipt-paper strong { font-weight: 800; }
