@@ -57,3 +57,38 @@ test("supermarket receipt template is wired into the page", async () => {
   assert.match(pageSource, /ВЫ СЭКОНОМИЛИ/);
   assert.match(pageSource, /СПАСИБО ЗА ПОКУПКУ/);
 });
+
+test("new scenarios are offered and their menus are wired in", async () => {
+  const response = await render();
+  const html = await response.text();
+  assert.match(html, /俄餐厅/);
+  assert.match(html, /烧烤厅/);
+  assert.match(html, /小卖部/);
+  assert.match(html, /Шашлычная/);
+  assert.match(html, /Киоск 24 часа/);
+
+  const russian = JSON.parse(await readFile(new URL("../data/russian-menu.json", import.meta.url), "utf8"));
+  assert.equal(russian.length, 24);
+  assert.equal(russian[0].category, "Закуски");
+  const grill = JSON.parse(await readFile(new URL("../data/grill-menu.json", import.meta.url), "utf8"));
+  assert.equal(grill.length, 21);
+  assert.equal(grill[0].category, "Мясо на углях");
+  const kiosk = JSON.parse(await readFile(new URL("../data/kiosk-menu.json", import.meta.url), "utf8"));
+  assert.equal(kiosk.length, 23);
+  assert.equal(kiosk[0].category, "Продукты");
+});
+
+test("new receipt templates keep fiscal fields and QR wiring", async () => {
+  const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(pageSource, /ДОБРО ПОЖАЛОВАТЬ/);
+  assert.match(pageSource, /БЛАГОДАРИМ ЗА ВИЗИТ/);
+  assert.match(pageSource, /ЖАРИМ НА УГЛЯХ/);
+  assert.match(pageSource, /ПРИЯТНОГО АППЕТИТА/);
+  assert.match(pageSource, /У НАС ДЕШЕВЛЕ/);
+  assert.match(pageSource, /СДАЧА/);
+  assert.match(pageSource, /АДМИНИСТРАТОР: ____/);
+  assert.match(pageSource, /russian-fiscal/);
+  assert.match(pageSource, /grill-fiscal/);
+  assert.match(pageSource, /kiosk-fiscal/);
+  assert.match(pageSource, /ОПЕРАЦИЯ/);
+});

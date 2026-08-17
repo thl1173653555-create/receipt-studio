@@ -1,18 +1,25 @@
 "use client";
 
 import QRCode from "qrcode";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import menuFile from "../data/menu.json";
 import supermarketMenuFile from "../data/supermarket-menu.json";
+import russianMenuFile from "../data/russian-menu.json";
+import grillMenuFile from "../data/grill-menu.json";
+import kioskMenuFile from "../data/kiosk-menu.json";
 import { buildPrintPageRule } from "./print-page.mjs";
 
 type PaperFormat = "58" | "80";
-type ReceiptScenario = "restaurant" | "supermarket";
+type ReceiptScenario = "restaurant" | "supermarket" | "russian-restaurant" | "grill" | "kiosk";
 type ReceiptFont = "ticket-mono" | "courier-new" | "consolas" | "arial";
 type MenuCategory =
   | "冷菜" | "热菜" | "主食" | "饮品" | "酒水" | "甜品" | "其他"
   | "Молочные продукты" | "Хлеб и выпечка" | "Бакалея" | "Сладости" | "Снеки"
-  | "Напитки" | "Консервы и соусы" | "Заморозка" | "Для дома" | "Красота и уход" | "Товары для животных";
+  | "Напитки" | "Консервы и соусы" | "Заморозка" | "Для дома" | "Красота и уход" | "Товары для животных"
+  | "Закуски" | "Первые блюда" | "Горячие блюда" | "Гарниры" | "Десерты"
+  | "Мясо на углях" | "Птица" | "Овощи гриль" | "Соусы" | "Хлеб и лепёшки"
+  | "Продукты" | "Сладости и снеки" | "Мороженое" | "Табачные изделия" | "Хозтовары" | "Алкоголь";
 type MenuFilter = "全部" | MenuCategory;
 
 type MenuItem = {
@@ -49,6 +56,8 @@ type ReceiptData = {
   ofd?: string;
   place?: string;
   savings?: number;
+  table?: string;
+  server?: string;
 };
 
 type QrPosition = {
@@ -63,6 +72,7 @@ type SavedReceipt = {
   scenario?: ReceiptScenario;
   format: PaperFormat;
   font?: ReceiptFont;
+  kind?: "manual" | "random";
   data: ReceiptData;
   qr: Record<PaperFormat, QrPosition>;
 };
@@ -71,10 +81,16 @@ const HISTORY_KEY = "beihai-receipt-history-v1";
 const MENU_KEYS: Record<ReceiptScenario, string> = {
   restaurant: "beihai-receipt-menu-v1",
   supermarket: "beihai-supermarket-menu-v1",
+  "russian-restaurant": "beihai-russian-menu-v1",
+  grill: "beihai-grill-menu-v1",
+  kiosk: "beihai-kiosk-menu-v1",
 };
 const MENU_CATEGORIES_BY_SCENARIO: Record<ReceiptScenario, MenuFilter[]> = {
   restaurant: ["全部", "冷菜", "热菜", "主食", "饮品", "酒水", "甜品", "其他"],
   supermarket: ["全部", "Молочные продукты", "Хлеб и выпечка", "Бакалея", "Сладости", "Снеки", "Напитки", "Консервы и соусы", "Заморозка", "Для дома", "Красота и уход", "Товары для животных"],
+  "russian-restaurant": ["全部", "Закуски", "Первые блюда", "Горячие блюда", "Гарниры", "Десерты", "Напитки"],
+  grill: ["全部", "Мясо на углях", "Птица", "Овощи гриль", "Соусы", "Хлеб и лепёшки", "Напитки"],
+  kiosk: ["全部", "Продукты", "Напитки", "Сладости и снеки", "Мороженое", "Табачные изделия", "Хозтовары", "Алкоголь"],
 };
 
 const PAPER: Record<PaperFormat, { label: string; paper: number; content: number }> = {
@@ -92,6 +108,9 @@ const RECEIPT_FONTS: Record<ReceiptFont, { label: string; detail: string }> = {
 const DEFAULT_MENUS: Record<ReceiptScenario, MenuItem[]> = {
   restaurant: menuFile as MenuItem[],
   supermarket: supermarketMenuFile as MenuItem[],
+  "russian-restaurant": russianMenuFile as MenuItem[],
+  grill: grillMenuFile as MenuItem[],
+  kiosk: kioskMenuFile as MenuItem[],
 };
 const DEFAULT_MENU = DEFAULT_MENUS.restaurant;
 
@@ -133,6 +152,83 @@ const DEFAULT_SUPERMARKET_RECEIPT: ReceiptData = {
   ofd: "CASH-NNT.KONTUR.RU",
   place: 'МАГАЗИН "РЕМИ"',
   items: DEFAULT_MENUS.supermarket.slice(0, 7).map((item) => ({ ...item, qty: 1 })),
+};
+
+const DEFAULT_RUSSIAN_RECEIPT: ReceiptData = {
+  storeName: 'РЕСТОРАН РУССКОЙ КУХНИ "САМОВАР"',
+  company: 'ООО "САМОВАР"',
+  address: "692806, Г. БОЛЬШОЙ КАМЕНЬ, УЛ. ПРИМОРСКОГО КОМСОМОЛА, Д. 5",
+  cashier: "СМИРНОВА Е. А.",
+  date: "2026-07-19",
+  time: "19:45",
+  saleNumber: "315",
+  payment: "БАНК. КАРТОЙ",
+  rn: "0008659688010746",
+  inn: "2503001333",
+  fn: "7380440903084288",
+  fiscalDocument: "5031",
+  fiscalSign: "2443271200",
+  taxSystem: "ОСН",
+  table: "СТОЛИК 5",
+  server: "ИВАН",
+  items: [
+    { ...DEFAULT_MENUS["russian-restaurant"][0], qty: 1 },
+    { ...DEFAULT_MENUS["russian-restaurant"][4], qty: 2 },
+    { ...DEFAULT_MENUS["russian-restaurant"][8], qty: 1 },
+    { ...DEFAULT_MENUS["russian-restaurant"][20], qty: 1 },
+  ],
+};
+
+const DEFAULT_GRILL_RECEIPT: ReceiptData = {
+  storeName: 'ШАШЛЫЧНАЯ "ЖАР-ПТИЦА"',
+  company: "ИП ГОРБУНОВ А. С.",
+  address: "692806, Г. БОЛЬШОЙ КАМЕНЬ, УЛ. МАСЛОЗАВОДСКАЯ, Д. 12",
+  cashier: "ШАШЛЫЧНИК ГОРБУНОВ А. С.",
+  date: "2026-07-19",
+  time: "22:10",
+  saleNumber: "487",
+  payment: "НАЛИЧНЫМИ",
+  rn: "0008659688010747",
+  inn: "2503001334",
+  fn: "7380440903084289",
+  fiscalDocument: "6112",
+  fiscalSign: "2443271201",
+  taxSystem: "УСН ДОХОД",
+  items: [
+    { ...DEFAULT_MENUS.grill[0], qty: 3 },
+    { ...DEFAULT_MENUS.grill[3], qty: 2 },
+    { ...DEFAULT_MENUS.grill[11], qty: 2 },
+    { ...DEFAULT_MENUS.grill[14], qty: 1 },
+  ],
+};
+
+const DEFAULT_KIOSK_RECEIPT: ReceiptData = {
+  storeName: 'ПРОДУКТЫ 24 ЧАСА "У ДОМА"',
+  company: "ИП ПЕТРОВА М. И.",
+  address: "692806, Г. БОЛЬШОЙ КАМЕНЬ, УЛ. ЛЕНИНА, Д. 3, ЛАРЁК 2",
+  cashier: "ПЕТРОВА М. И.",
+  date: "2026-07-19",
+  time: "08:12",
+  saleNumber: "1126",
+  payment: "НАЛИЧНЫМИ",
+  savings: 150,
+  register: "0006.02",
+  shift: "0812",
+  taxSystem: "УСН ДОХОД",
+  fiscalDocument: "90214",
+  fiscalSign: "0082339470",
+  fn: "7384440901113191",
+  rn: "0008454318052676",
+  inn: "2503029219",
+  ofd: "CASH-NNT.KONTUR.RU",
+  place: 'ЛАРЁК "У ДОМА"',
+  items: [
+    { ...DEFAULT_MENUS.kiosk[0], qty: 1 },
+    { ...DEFAULT_MENUS.kiosk[5], qty: 2 },
+    { ...DEFAULT_MENUS.kiosk[8], qty: 1 },
+    { ...DEFAULT_MENUS.kiosk[14], qty: 2 },
+    { ...DEFAULT_MENUS.kiosk[16], qty: 1 },
+  ],
 };
 
 const DEFAULT_QR: Record<PaperFormat, QrPosition> = {
@@ -187,8 +283,22 @@ function mergeMenu(items: MenuItem[], defaults: MenuItem[]) {
 }
 
 function receiptTemplateForScenario(scenario: ReceiptScenario) {
-  return scenario === "supermarket" ? DEFAULT_SUPERMARKET_RECEIPT : DEFAULT_RECEIPT;
+  switch (scenario) {
+    case "supermarket": return DEFAULT_SUPERMARKET_RECEIPT;
+    case "russian-restaurant": return DEFAULT_RUSSIAN_RECEIPT;
+    case "grill": return DEFAULT_GRILL_RECEIPT;
+    case "kiosk": return DEFAULT_KIOSK_RECEIPT;
+    default: return DEFAULT_RECEIPT;
+  }
 }
+
+const SCENARIO_OPTIONS: { value: ReceiptScenario; icon: string; label: string; sub: string; notice: string }[] = [
+  { value: "restaurant", icon: "餐", label: "餐厅", sub: "Китайская кухня", notice: "已切换到餐厅场景" },
+  { value: "supermarket", icon: "超", label: "超市", sub: "Магазин / продукты", notice: "已切换到超市场景" },
+  { value: "russian-restaurant", icon: "俄", label: "俄餐厅", sub: "Русский ресторан", notice: "已切换到俄餐厅场景" },
+  { value: "grill", icon: "烤", label: "烧烤厅", sub: "Шашлычная", notice: "已切换到烧烤厅场景" },
+  { value: "kiosk", icon: "店", label: "小卖部", sub: "Киоск 24 часа", notice: "已切换到小卖部场景" },
+];
 
 export default function Home() {
   const [scenario, setScenario] = useState<ReceiptScenario>("restaurant");
@@ -206,6 +316,7 @@ export default function Home() {
   const [menuQuery, setMenuQuery] = useState("");
   const [menuCategory, setMenuCategory] = useState<MenuFilter>("全部");
   const [notice, setNotice] = useState("");
+  const [historyTab, setHistoryTab] = useState<"all" | "random">("all");
 
   const total = useMemo(
     () => receipt.items.reduce((sum, item) => sum + item.qty * item.price, 0),
@@ -231,7 +342,7 @@ export default function Home() {
   useEffect(() => {
     setHistory(readLocal<SavedReceipt[]>(HISTORY_KEY, []));
     setMenu(mergeMenu(readLocal<MenuItem[]>(MENU_KEYS[scenario], []), DEFAULT_MENUS[scenario]));
-    setMenuCategory("鍏ㄩ儴");
+    setMenuCategory("全部");
     setNewMenuCategory(MENU_CATEGORIES_BY_SCENARIO[scenario][1] as MenuCategory);
   }, [scenario]);
 
@@ -361,12 +472,14 @@ export default function Home() {
   }
 
   function saveReceipt() {
+    const entryId = activeId ?? makeId();
     const entry: SavedReceipt = {
-      id: activeId ?? makeId(),
+      id: entryId,
       savedAt: new Date().toISOString(),
       scenario,
       format,
       font: receiptFont,
+      kind: history.find((item) => item.id === entryId)?.kind ?? "manual",
       data: receipt,
       qr: qrPositions,
     };
@@ -398,7 +511,6 @@ export default function Home() {
   function startNewReceipt() {
     const template = receiptTemplateForScenario(scenario);
     setReceipt({ ...template, items: template.items.map((item) => ({ ...item, id: makeId() })) });
-    setFormat("58");
     setQrPositions(DEFAULT_QR);
     setActiveId(null);
     setNotice("已新建小票");
@@ -414,7 +526,7 @@ export default function Home() {
     setNewMenuCategory(MENU_CATEGORIES_BY_SCENARIO[nextScenario][1] as MenuCategory);
     setQrPositions(DEFAULT_QR);
     setActiveId(null);
-    setNotice(nextScenario === "supermarket" ? "已切换到超市场景" : "已切换到餐厅场景");
+    setNotice(SCENARIO_OPTIONS.find((option) => option.value === nextScenario)?.notice ?? "已切换场景");
   }
 
   async function printReceipt() {
@@ -429,6 +541,8 @@ export default function Home() {
 
     const printCopy = printArea.cloneNode(true) as HTMLElement;
     printCopy.removeAttribute("id");
+    // 与 @media print 的小票宽度保持一致(纸宽 - 3mm),测出的页面高度才是真实打印高度
+    printCopy.style.width = `calc(${currentPaper.paper}mm - 3mm)`;
     measureHost.appendChild(printCopy);
     document.body.appendChild(measureHost);
 
@@ -470,6 +584,7 @@ export default function Home() {
         </div>
         <div className="top-actions">
           <span className="status-pill"><span className="status-dot" /> 非税务二维码模式</span>
+          <Link className="button button-ghost" href="/random">随机小票</Link>
           <button className="button button-ghost" onClick={startNewReceipt}>新建小票</button>
           <button className="button button-primary" onClick={saveReceipt}>保存小票</button>
         </div>
@@ -495,16 +610,13 @@ export default function Home() {
               <span className="muted">选择打印模板</span>
             </div>
             <div className="scenario-options">
-              <label className={`scenario-option ${scenario === "restaurant" ? "selected" : ""}`}>
-                <input type="radio" name="receipt-scenario" checked={scenario === "restaurant"} onChange={() => switchScenario("restaurant")} />
-                <span className="scenario-icon">餐</span>
-                <span><strong>餐厅</strong><small>Русский ресторан</small></span>
-              </label>
-              <label className={`scenario-option ${scenario === "supermarket" ? "selected" : ""}`}>
-                <input type="radio" name="receipt-scenario" checked={scenario === "supermarket"} onChange={() => switchScenario("supermarket")} />
-                <span className="scenario-icon">超</span>
-                <span><strong>超市</strong><small>Магазин / продукты</small></span>
-              </label>
+              {SCENARIO_OPTIONS.map((option) => (
+                <label className={`scenario-option ${scenario === option.value ? "selected" : ""}`} key={option.value}>
+                  <input type="radio" name="receipt-scenario" checked={scenario === option.value} onChange={() => switchScenario(option.value)} />
+                  <span className="scenario-icon">{option.icon}</span>
+                  <span><strong>{option.label}</strong><small>{option.sub}</small></span>
+                </label>
+              ))}
             </div>
           </div>
 
@@ -550,7 +662,7 @@ export default function Home() {
                 <option>НАЛИЧНЫМИ</option>
               </select>
             </label>
-            <label className="field-label">节省金额（卢布）
+            <label className="field-label">{scenario === "kiosk" ? "找零金额（卢布）" : "节省金额（卢布）"}
               <input type="number" min="0" step="0.01" value={receipt.savings ?? 0} onChange={(event) => updateReceipt("savings", Math.max(0, Number(event.target.value) || 0))} />
             </label>
             <div className="field-grid three">
@@ -612,7 +724,7 @@ export default function Home() {
                 <div className="order-row" key={item.id}>
                   <div className="order-row-top"><span className="order-index">{String(index + 1).padStart(2, "0")}</span><input aria-label="商品名称" value={item.name} onChange={(event) => updateOrderItem(item.id, "name", event.target.value)} /><button className="remove-line" onClick={() => removeOrderItem(item.id)} aria-label="删除商品">×</button></div>
                   <div className="order-row-bottom">
-                    <label>数量<input type="number" min="0" step="1" value={item.qty} onChange={(event) => updateOrderItem(item.id, "qty", event.target.value)} /></label>
+                    <label>数量<input type="number" min="0" step={scenario === "grill" ? "0.05" : "1"} value={item.qty} onChange={(event) => updateOrderItem(item.id, "qty", event.target.value)} /></label>
                     <label>单价<input type="number" min="0" step="0.01" value={item.price} onChange={(event) => updateOrderItem(item.id, "price", event.target.value)} /></label>
                     <strong>{formatMoney(item.qty * item.price)} ₽</strong>
                   </div>
@@ -640,12 +752,22 @@ export default function Home() {
               <div><span className="section-index">07</span><h3>本机历史</h3></div>
               <span className="muted">最多保存50张</span>
             </div>
-            {history.length === 0 ? <div className="empty-history">保存后，小票会出现在这里。</div> : <div className="history-list">
-              {history.slice(0, 8).map((entry) => <div className={`history-row ${activeId === entry.id ? "current" : ""}`} key={entry.id}>
-                <button className="history-open" onClick={() => loadReceipt(entry)}><strong>{entry.data.storeName}</strong><span>{formatDate(entry.data.date)} · {entry.data.saleNumber} · {formatMoney(entry.data.items.reduce((sum, item) => sum + item.qty * item.price, 0))} ₽</span></button>
-                <button className="history-delete" onClick={() => deleteHistory(entry.id)} aria-label="删除历史">×</button>
-              </div>)}
-            </div>}
+            <div className="history-tabs">
+              <button type="button" className={`history-tab ${historyTab === "all" ? "active" : ""}`} onClick={() => setHistoryTab("all")}>全部 <b>{history.length}</b></button>
+              <button type="button" className={`history-tab ${historyTab === "random" ? "active" : ""}`} onClick={() => setHistoryTab("random")}>随机生成 <b>{history.filter((item) => item.kind === "random").length}</b></button>
+            </div>
+            {(() => {
+              const shown = historyTab === "random" ? history.filter((item) => item.kind === "random") : history;
+              if (shown.length === 0) {
+                return <div className="empty-history">{historyTab === "random" ? "还没有随机生成的小票,去「随机小票」页面生成吧。" : "保存后,小票会出现在这里。"}</div>;
+              }
+              return <div className="history-list">
+                {shown.slice(0, 8).map((entry) => <div className={`history-row ${activeId === entry.id ? "current" : ""}`} key={entry.id}>
+                  <button className="history-open" onClick={() => loadReceipt(entry)}><strong>{entry.data.storeName}{entry.kind === "random" ? <i className="history-badge">随机</i> : null}</strong><span>{formatDate(entry.data.date)} · {entry.data.saleNumber} · {formatMoney(entry.data.items.reduce((sum, item) => sum + item.qty * item.price, 0))} ₽</span></button>
+                  <button className="history-delete" onClick={() => deleteHistory(entry.id)} aria-label="删除历史">×</button>
+                </div>)}
+              </div>;
+            })()}
           </div>
         </section>
 
@@ -684,7 +806,7 @@ export default function Home() {
                     </div>
                     <div className="receipt-bottom-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
                   </>
-                ) : (
+                ) : scenario === "supermarket" ? (
                   <>
                     <div className="receipt-top-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
                     <div className="receipt-store">{receipt.storeName}</div>
@@ -725,6 +847,12 @@ export default function Home() {
                     </div>
                     <div className="receipt-bottom-line">— — — — — — — — — — — — — — — — — — — — — — — — — —</div>
                   </>
+                ) : scenario === "russian-restaurant" ? (
+                  <RussianRestaurantReceiptBody receipt={receipt} total={total} qrImage={qrImage} />
+                ) : scenario === "grill" ? (
+                  <GrillReceiptBody receipt={receipt} total={total} qrImage={qrImage} />
+                ) : (
+                  <KioskReceiptBody receipt={receipt} total={total} qrImage={qrImage} />
                 )}
               </div>
             </div>
@@ -734,5 +862,182 @@ export default function Home() {
       </div>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
+  );
+}
+
+/** Group order items by category, preserving first-appearance order. */
+function groupOrderByCategory(items: OrderItem[]) {
+  const order: string[] = [];
+  const groups = new Map<string, OrderItem[]>();
+  for (const item of items) {
+    const bucket = groups.get(item.category);
+    if (bucket) bucket.push(item);
+    else {
+      groups.set(item.category, [item]);
+      order.push(item.category);
+    }
+  }
+  return order.map((category) => ({ category, items: groups.get(category)! }));
+}
+
+function ReceiptQr({ qrImage }: { qrImage: string }) {
+  return (
+    <div className="receipt-qr-slot">
+      <div className="receipt-qr" aria-label="非税务二维码">
+        {qrImage ? <img src={qrImage} alt="本次小票非税务演示二维码" /> : <span>QR</span>}
+      </div>
+    </div>
+  );
+}
+
+function RussianRestaurantReceiptBody({ receipt, total, qrImage }: { receipt: ReceiptData; total: number; qrImage: string }) {
+  const groups = groupOrderByCategory(receipt.items);
+  return (
+    <>
+      <div className="receipt-store">{receipt.storeName}</div>
+      <div className="russian-address">{receipt.address}</div>
+      <div className="russian-welcome">ДОБРО ПОЖАЛОВАТЬ!</div>
+      <div className="receipt-rule" />
+      <div className="receipt-subtitle">КАССОВЫЙ ЧЕК</div>
+      <div className="receipt-rule" />
+      {groups.map((group) => (
+        <div className="russian-group" key={group.category}>
+          <div className="russian-group-title">{group.category}</div>
+          {group.items.map((item) => (
+            <div className="russian-item" key={item.id}>
+              <span className="russian-item-name">{item.name}</span>
+              <span className="russian-item-qty">{item.qty > 1 ? `×${item.qty}` : ""}</span>
+              <span className="russian-item-dots" />
+              <strong className="russian-item-sum">{formatMoney(item.qty * item.price)}</strong>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="receipt-rule" />
+      <div className="receipt-summary">
+        <div className="receipt-row receipt-grand-total"><span>ИТОГ</span><strong>={formatMoney(total)}</strong></div>
+        <div className="receipt-row"><span>{receipt.payment}</span><strong>={formatMoney(total)}</strong></div>
+      </div>
+      <div className="receipt-rule" />
+      <div className="russian-service">
+        <div>{receipt.table ?? "СТОЛИК —"} · ОФИЦИАНТ: {receipt.server ?? "—"}</div>
+        <div>КАССИР {receipt.cashier}</div>
+        <div>{receipt.company}</div>
+      </div>
+      <div className="russian-thanks">БЛАГОДАРИМ ЗА ВИЗИТ!<br />ЖДЁМ ВАС СНОВА</div>
+      <div className="receipt-rule" />
+      <div className="russian-fiscal">
+        <div className="russian-fiscal-table">
+          <div className="russian-fiscal-row"><span>СНО</span><i className="russian-leader" /><strong>{receipt.taxSystem ?? "ОСН"}</strong></div>
+          <div className="russian-fiscal-row"><span>ЗН ККТ</span><i className="russian-leader" /><strong>{DEMO_TAX_FIELDS[0][1]}</strong></div>
+          <div className="russian-fiscal-row"><span>РН ККТ</span><i className="russian-leader" /><strong>{receipt.rn ?? DEMO_TAX_FIELDS[1][1]}</strong></div>
+          <div className="russian-fiscal-row"><span>ИНН</span><i className="russian-leader" /><strong>{receipt.inn ?? DEMO_TAX_FIELDS[2][1]}</strong></div>
+          <div className="russian-fiscal-row"><span>ФН</span><i className="russian-leader" /><strong>{receipt.fn ?? DEMO_TAX_FIELDS[3][1]}</strong></div>
+          <div className="russian-fiscal-row"><span>ФД</span><i className="russian-leader" /><strong>{receipt.fiscalDocument ?? DEMO_TAX_FIELDS[4][1]}</strong></div>
+          <div className="russian-fiscal-row"><span>ФП</span><i className="russian-leader" /><strong>{receipt.fiscalSign ?? DEMO_TAX_FIELDS[5][1]}</strong></div>
+          <div className="russian-fiscal-row"><span>ОПЕРАЦИЯ</span><i className="russian-leader" /><strong>ПРИХОД</strong></div>
+        </div>
+        <div className="russian-fiscal-meta">{formatDate(receipt.date)} {receipt.time}</div>
+        <div className="russian-fiscal-meta">WWW.NALOG.GOV.RU</div>
+        <ReceiptQr qrImage={qrImage} />
+      </div>
+      <div className="russian-sign">АДМИНИСТРАТОР: __________________</div>
+    </>
+  );
+}
+
+function GrillReceiptBody({ receipt, total, qrImage }: { receipt: ReceiptData; total: number; qrImage: string }) {
+  return (
+    <>
+      <div className="grill-top-bar">────────────────────────────────────────────────────────────</div>
+      <div className="grill-store">{receipt.storeName}</div>
+      <div className="grill-tagline">ЖАРИМ НА УГЛЯХ · РАБОТАЕМ ДО 02:00</div>
+      <div className="grill-top-bar">────────────────────────────────────────────────────────────</div>
+      <div className="receipt-subtitle">ЧЕК № {receipt.saleNumber} · {formatDate(receipt.date)} {receipt.time}</div>
+      <div className="grill-sep">────────────────────────────────────────────────────────────</div>
+      {receipt.items.map((item) => (
+        <div className="grill-item" key={item.id}>
+          <div className="grill-item-name">{item.name}</div>
+          <div className="grill-item-line">
+            <span>{item.qty} порц. × {formatMoney(item.price)}</span>
+            <strong>={formatMoney(item.qty * item.price)}</strong>
+          </div>
+        </div>
+      ))}
+      <div className="grill-sep">────────────────────────────────────────────────────────────</div>
+      <div className="receipt-summary">
+        <div className="receipt-row receipt-grand-total"><span>ИТОГ</span><strong>={formatMoney(total)}</strong></div>
+        <div className="receipt-row"><span>{receipt.payment}</span><strong>={formatMoney(total)}</strong></div>
+      </div>
+      <div className="grill-stars">ПРИЯТНОГО АППЕТИТА!</div>
+      <div className="receipt-rule" />
+      <div className="grill-fiscal">
+        <div className="grill-fiscal-rows">
+          <div><b>ФД</b> {receipt.fiscalDocument ?? DEMO_TAX_FIELDS[4][1]} <b>ФП</b> {receipt.fiscalSign ?? DEMO_TAX_FIELDS[5][1]}</div>
+          <div><b>ФН</b> {receipt.fn ?? DEMO_TAX_FIELDS[3][1]}</div>
+          <div><b>СНО</b> {receipt.taxSystem ?? "УСН ДОХОД"}</div>
+          <div><b>ИНН</b> {receipt.inn ?? DEMO_TAX_FIELDS[2][1]}</div>
+          <div><b>ЗН ККТ</b> {DEMO_TAX_FIELDS[0][1]}</div>
+          <div><b>РН ККТ</b> {receipt.rn ?? DEMO_TAX_FIELDS[1][1]}</div>
+          <div className="grill-fiscal-meta">{formatDate(receipt.date)} {receipt.time} · ПРИХОД</div>
+        </div>
+        <ReceiptQr qrImage={qrImage} />
+      </div>
+      <div className="grill-chef">ШАШЛЫЧНИК: {receipt.cashier}</div>
+      <div className="grill-address">{receipt.address}</div>
+    </>
+  );
+}
+
+function KioskReceiptBody({ receipt, total, qrImage }: { receipt: ReceiptData; total: number; qrImage: string }) {
+  const groups = groupOrderByCategory(receipt.items);
+  return (
+    <>
+      <div className="kiosk-store">{receipt.storeName}</div>
+      <div className="kiosk-sub">ЛАРЁК · РАБОТАЕМ КРУГЛОСУТОЧНО</div>
+      <div className="receipt-subtitle">КАССОВЫЙ ЧЕК № {receipt.saleNumber} (ПРИХОД)</div>
+      <div className="receipt-rule" />
+      {groups.map((group) => (
+        <div className="kiosk-group" key={group.category}>
+          <div className="kiosk-group-title">{group.category}</div>
+          {group.items.map((item) => (
+            <div className="kiosk-item" key={item.id}>
+              <span className="kiosk-name">{item.name} ×{item.qty}</span>
+              <span className="kiosk-dots" />
+              <strong>{formatMoney(item.qty * item.price)}</strong>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="receipt-rule" />
+      <div className="receipt-summary">
+        <div className="receipt-row receipt-grand-total"><span>ИТОГ</span><strong>={formatMoney(total)}</strong></div>
+        <div className="receipt-row"><span>НАЛИЧНЫМИ</span><strong>={formatMoney(total)}</strong></div>
+        <div className="receipt-row"><span>СДАЧА</span><strong>={formatMoney(receipt.savings ?? 0)}</strong></div>
+        <div className="receipt-row"><span>{receipt.payment}</span><strong>={formatMoney(total)}</strong></div>
+      </div>
+      <div className="receipt-rule" />
+      <div className="kiosk-thanks">СПАСИБО ЗА ПОКУПКУ!<br />У НАС ДЕШЕВЛЕ!</div>
+      <div className="receipt-rule" />
+      <div className="kiosk-fiscal">
+        <div className="kiosk-fiscal-rows">
+          <div>СНО УСН ДОХОД</div>
+          <div>ЗН ККТ {receipt.rn ?? DEMO_TAX_FIELDS[1][1]}</div>
+          <div>РН ККТ {receipt.rn ?? DEMO_TAX_FIELDS[1][1]}</div>
+          <div>ИНН {receipt.inn ?? DEMO_TAX_FIELDS[2][1]}</div>
+          <div>ФН {receipt.fn ?? DEMO_TAX_FIELDS[3][1]}</div>
+          <div>ФД {receipt.fiscalDocument ?? DEMO_TAX_FIELDS[4][1]} · ФП {receipt.fiscalSign ?? DEMO_TAX_FIELDS[5][1]}</div>
+          <div className="kiosk-fiscal-meta">{formatDate(receipt.date)} {receipt.time} · ПРИХОД</div>
+          <div className="kiosk-fiscal-meta">WWW.NALOG.GOV.RU</div>
+        </div>
+        <ReceiptQr qrImage={qrImage} />
+      </div>
+      <div className="kiosk-footer">
+        <div>КАССА {receipt.register ?? "0006.02"} · СМЕНА {receipt.shift ?? "0812"}</div>
+        <div>{receipt.cashier}</div>
+        <div>{receipt.address}</div>
+        <div>САЙТ ФНС WWW.NALOG.GOV.RU · ОФД {receipt.ofd ?? "CASH-NNT.KONTUR.RU"}</div>
+      </div>
+    </>
   );
 }

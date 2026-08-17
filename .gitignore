@@ -34,6 +34,9 @@ yarn-error.log*
 # mcp config with embedded api key
 /.mcp.json
 
+# local dev logs
+/dev-*.log
+
 # reasonix tooling
 .reasonix/
 /mcp-qwen-vision/

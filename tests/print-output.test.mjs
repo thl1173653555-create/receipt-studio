@@ -52,3 +52,13 @@ test("receipt font choices include Cyrillic-friendly printer fonts", async () =>
   assert.match(css, /\.receipt-paper\.font--consolas\s*\{[^}]*Consolas/);
   assert.match(css, /\.receipt-paper\.font--arial\s*\{[^}]*Arial/);
 });
+
+test("direct-print launcher enables kiosk printing", async () => {
+  const launcher = await readFile(new URL("../scripts/start-direct-print.ps1", import.meta.url), "utf8");
+  const command = await readFile(new URL("../start-direct-print.cmd", import.meta.url), "utf8");
+
+  assert.match(launcher, /--kiosk-printing/);
+  assert.match(launcher, /--app=\$url/);
+  assert.match(launcher, /--user-data-dir=\$profileRoot/);
+  assert.match(command, /start-direct-print\.ps1/);
+});

@@ -1,0 +1,23 @@
+[
+  { "id": "gr-pork", "name": "Шашлык из свинины 100г", "price": 290, "category": "Мясо на углях" },
+  { "id": "gr-lamb", "name": "Шашлык из баранины 100г", "price": 380, "category": "Мясо на углях" },
+  { "id": "gr-beef", "name": "Шашлык из говядины 100г", "price": 420, "category": "Мясо на углях" },
+  { "id": "gr-chicken", "name": "Шашлык из курицы 100г", "price": 210, "category": "Мясо на углях" },
+  { "id": "gr-lyulya", "name": "Люля-кебаб из баранины 1шт", "price": 260, "category": "Мясо на углях" },
+  { "id": "gr-ribs", "name": "Рёбрышки свиные 400г", "price": 480, "category": "Мясо на углях" },
+  { "id": "gr-wings", "name": "Крылышки барбекю 300г", "price": 390, "category": "Птица" },
+  { "id": "gr-hearts", "name": "Куриные сердечки на углях 200г", "price": 320, "category": "Птица" },
+  { "id": "gr-veg", "name": "Овощи гриль ассорти 300г", "price": 340, "category": "Овощи гриль" },
+  { "id": "gr-potato", "name": "Картофель запечённый с салом 300г", "price": 260, "category": "Овощи гриль" },
+  { "id": "gr-mushroom", "name": "Шампиньоны на углях 200г", "price": 300, "category": "Овощи гриль" },
+  { "id": "gr-tkemali", "name": "Соус ткемали 50г", "price": 90, "category": "Соусы" },
+  { "id": "gr-garlic", "name": "Соус чесночный 50г", "price": 80, "category": "Соусы" },
+  { "id": "gr-bbq", "name": "Соус барбекю 50г", "price": 85, "category": "Соусы" },
+  { "id": "gr-lepeshka", "name": "Лепёшка тандырная 1шт", "price": 70, "category": "Хлеб и лепёшки" },
+  { "id": "gr-lavash", "name": "Лаваш тонкий 1шт", "price": 60, "category": "Хлеб и лепёшки" },
+  { "id": "gr-kvas", "name": "Квас разливной 500мл", "price": 120, "category": "Напитки" },
+  { "id": "gr-mors", "name": "Морс ягодный 500мл", "price": 140, "category": "Напитки" },
+  { "id": "gr-beer", "name": "Пиво светлое 0,5л", "price": 190, "category": "Напитки" },
+  { "id": "gr-tea", "name": "Чай из самовара 500мл", "price": 100, "category": "Напитки" },
+  { "id": "gr-lemonade", "name": "Лимонад домашний 500мл", "price": 130, "category": "Напитки" }
+]

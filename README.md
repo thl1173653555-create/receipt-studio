@@ -54,6 +54,27 @@ Requires Node.js `>=22.13.0`.
 4. Tune the QR position if needed.
 5. **打印小票** prints at real paper size; save as PDF from the print dialog.
 
+### Direct printing to a thermal printer (Windows)
+
+For one-click printing without the browser print settings page, double-click
+`start-direct-print.cmd` in the project folder. It starts the local app in
+Edge/Chrome kiosk-printing mode. The app's **打印小票** button then sends the
+receipt directly to the Windows default printer. Set the XP-58 printer as the
+Windows default printer before using this mode.
+
+### Print margins & settings
+
+The app declares the exact roll-paper page size (`@page { size: 58mm/80mm ×
+content height; margin: 0 }`), and at print time the receipt fills the full
+paper width with only 1.5mm side margins. If your print preview or output
+still shows large margins:
+
+1. In the browser print dialog, set **Margins → None / Default** (the CSS
+   `@page` margin is already zero).
+2. Make sure the paper size follows the page (**58mm / 80mm / custom**), not
+   A4 — otherwise the browser centres the narrow page on an A4 sheet.
+3. Set **Scale → 100%** (avoid "Fit to page").
+
 ## 📁 Project Structure
 
 ```

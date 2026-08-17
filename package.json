@@ -8,9 +8,10 @@
   },
   "scripts": {
     "dev": "vinext dev",
+    "direct-print": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-direct-print.ps1",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/print-output.test.mjs",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/print-output.test.mjs tests/random-meal.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
